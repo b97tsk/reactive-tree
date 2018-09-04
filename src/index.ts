@@ -1,13 +1,13 @@
 import {
+    BehaviorSubject,
     NEVER,
     Observable,
     Subject,
     Subscription,
     TeardownLogic,
-    defer,
     merge,
 } from 'rxjs'
-import { distinctUntilChanged, share, skip, startWith } from 'rxjs/operators'
+import { distinctUntilChanged, share, skip } from 'rxjs/operators'
 
 export interface Leaf<T> {
     value: T
@@ -51,12 +51,9 @@ class $Leaf$<T> implements Leaf<T> {
     get [Symbol_signal]() {
         return (
             this._signal ||
-            (this._signal = defer(() =>
-                createSubject(this).pipe(
-                    startWith(this.value),
-                    distinctUntilChanged(),
-                    skip(1)
-                )
+            (this._signal = this.subject().pipe(
+                distinctUntilChanged(),
+                skip(1)
             ))
         )
     }
@@ -77,7 +74,10 @@ class $Leaf$<T> implements Leaf<T> {
         subject && subject.next(value)
     }
     subject() {
-        return createSubject(this)
+        return (
+            this._subject ||
+            (this._subject = new BehaviorSubject<T>(this.value))
+        )
     }
     subscribe(observable: Observable<T>) {
         return (this._subscription = observable.subscribe(value => {
@@ -486,10 +486,6 @@ function addLeaf(x: { _leaves?: LeafLike[] }, leaf: LeafLike) {
 
 function getSignal(leaf: LeafLike) {
     return leaf[Symbol_signal]
-}
-
-function createSubject<T>(x: { _subject?: Subject<T> }) {
-    return x._subject || (x._subject = new Subject<T>())
 }
 
 function unsubscribeObject(x: { _subscription?: Subscription | null }) {
