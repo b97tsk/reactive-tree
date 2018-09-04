@@ -72,14 +72,13 @@ describe('Twig', function() {
         })
         expect(twig.dirty).to.be.true
         expect(() => twig.value).to.throw()
+        expect(twig.dirty).to.be.true
         twig.dirty = false
         expect(() => twig.value).to.not.throw()
     })
     it('use leaves inside handler', function() {
         const leaf_a = createLeaf(0)
         const leaf_b = createLeaf(0)
-        expect(leaf_a.value).to.equal(0)
-        expect(leaf_b.value).to.equal(0)
         const twig = createTwig(() => leaf_a.read() + leaf_b.read())
         expect(twig.value).to.equal(0)
         leaf_a.write(12)
@@ -119,8 +118,6 @@ describe('Branch', function() {
         this.timeout(10000)
         const leaf_a = createLeaf(0)
         const leaf_b = createLeaf(0)
-        expect(leaf_a.value).to.equal(0)
-        expect(leaf_b.value).to.equal(0)
         let value = NaN
         createBranch(() => {
             value = leaf_a.read() + leaf_b.read()
@@ -142,8 +139,6 @@ describe('Branch', function() {
         this.timeout(10000)
         const leaf_a = createLeaf(0)
         const leaf_b = createLeaf(0)
-        expect(leaf_a.value).to.equal(0)
-        expect(leaf_b.value).to.equal(0)
         const twig_a = createTwig(() => leaf_a.read() + leaf_b.read())
         const twig_b = createTwig(() => leaf_a.read() - leaf_b.read())
         let value = NaN
@@ -161,6 +156,28 @@ describe('Branch', function() {
             expect(value).to.equal(39)
             setTimeout(() => {
                 expect(value).to.equal(45)
+                done()
+            }, 1)
+        }, 1)
+    })
+    it('use branches inside handler (nesting)', function(done) {
+        this.timeout(10000)
+        const leaf_a = createLeaf(3)
+        const leaf_b = createLeaf(5)
+        let value = 0
+        createBranch(() => {
+            value += leaf_a.read()
+            createBranch(() => {
+                value += leaf_b.read()
+            })
+        })
+        expect(value).to.equal(3 + 5) // 8
+        leaf_a.write(7)
+        setTimeout(() => {
+            expect(value).to.equal(8 + 7 + 5) // 20
+            leaf_b.write(11)
+            setTimeout(() => {
+                expect(value).to.equal(20 + 11) // 31
                 done()
             }, 1)
         }, 1)
@@ -192,8 +209,6 @@ describe('Branch', function() {
         this.timeout(10000)
         const leaf_a = createLeaf(0)
         const leaf_b = createLeaf(0)
-        expect(leaf_a.value).to.equal(0)
-        expect(leaf_b.value).to.equal(0)
         let value = NaN
         createBranch(branch => {
             branch.freeze()
