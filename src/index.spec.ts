@@ -1,6 +1,6 @@
 import 'mocha'
 import { expect } from 'chai'
-import { createBranch, createLeaf, createTwig } from '.'
+import { createBranch, createLeaf, createTwig, schedule } from '.'
 import { of } from 'rxjs'
 import { delay } from 'rxjs/operators'
 
@@ -125,15 +125,15 @@ describe('Branch', function() {
         expect(value).to.equal(0)
         leaf_a.write(12)
         expect(value).to.equal(0)
-        setTimeout(() => {
+        schedule(() => {
             expect(value).to.equal(12)
             leaf_b.write(30)
             expect(value).to.equal(12)
-            setTimeout(() => {
+            schedule(() => {
                 expect(value).to.equal(42)
                 done()
-            }, 1)
-        }, 1)
+            })
+        })
     })
     it('use twigs inside handler', function(done) {
         this.timeout(10000)
@@ -149,16 +149,16 @@ describe('Branch', function() {
         leaf_a.write(8)
         leaf_b.write(5)
         expect(value).to.equal(0)
-        setTimeout(() => {
+        schedule(() => {
             expect(value).to.equal(39)
             leaf_a.write(9)
             leaf_b.write(6)
             expect(value).to.equal(39)
-            setTimeout(() => {
+            schedule(() => {
                 expect(value).to.equal(45)
                 done()
-            }, 1)
-        }, 1)
+            })
+        })
     })
     it('use branches inside handler (nesting)', function(done) {
         this.timeout(10000)
@@ -173,14 +173,14 @@ describe('Branch', function() {
         })
         expect(value).to.equal(3 + 5) // 8
         leaf_a.write(7)
-        setTimeout(() => {
+        schedule(() => {
             expect(value).to.equal(8 + 7 + 5) // 20
             leaf_b.write(11)
-            setTimeout(() => {
+            schedule(() => {
                 expect(value).to.equal(20 + 11) // 31
                 done()
-            }, 1)
-        }, 1)
+            })
+        })
     })
     it('stop() and run() again', function(done) {
         this.timeout(10000)
@@ -193,17 +193,17 @@ describe('Branch', function() {
         branch.stop()
         leaf.write(42)
         expect(value).to.equal(0)
-        setTimeout(() => {
+        schedule(() => {
             expect(value).to.equal(0)
             branch.run()
             expect(value).to.equal(42)
             leaf.write(NaN)
             expect(value).to.equal(42)
-            setTimeout(() => {
+            schedule(() => {
                 expect(value).to.be.NaN
                 done()
-            }, 1)
-        }, 1)
+            })
+        })
     })
     it('freeze() and unfreeze()', function(done) {
         this.timeout(10000)
@@ -220,15 +220,15 @@ describe('Branch', function() {
         expect(value).to.equal(0)
         leaf_a.write(12)
         expect(value).to.equal(0)
-        setTimeout(() => {
+        schedule(() => {
             expect(value).to.equal(0)
             leaf_b.write(30)
             expect(value).to.equal(0)
-            setTimeout(() => {
+            schedule(() => {
                 expect(value).to.equal(42)
                 done()
-            }, 1)
-        }, 1)
+            })
+        })
     })
     it('schedule() a branch manually', function(done) {
         this.timeout(10000)
@@ -238,10 +238,10 @@ describe('Branch', function() {
         })
         branch.schedule()
         expect(value).to.equal(41)
-        setTimeout(() => {
+        schedule(() => {
             expect(value).to.equal(42)
             done()
-        }, 1)
+        })
     })
     it('schedule() and unschedule()', function(done) {
         this.timeout(10000)
@@ -252,10 +252,10 @@ describe('Branch', function() {
         branch.schedule()
         expect(value).to.equal(42)
         branch.unschedule()
-        setTimeout(() => {
+        schedule(() => {
             expect(value).to.equal(42)
             done()
-        }, 1)
+        })
     })
     it('addTeardown()', function() {
         let value = NaN

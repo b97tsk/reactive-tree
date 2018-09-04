@@ -181,6 +181,28 @@ class $Branch$ implements Branch {
     }
 }
 
+export type ScheduleFunc = (callback: (...args: any[]) => void) => void
+
+type ScheduleObject = {
+    (callback: (...args: any[]) => void): void
+    replace(fn: ScheduleFunc): ScheduleFunc
+}
+
+export const schedule: ScheduleObject = (() => {
+    let scheduleFunc: ScheduleFunc = (callback: (...args: any[]) => void) => {
+        setTimeout(callback, 1)
+    }
+    let schedule: any = (callback: (...args: any[]) => void) => {
+        scheduleFunc(callback)
+    }
+    schedule.replace = (fn: ScheduleFunc): ScheduleFunc => {
+        const s = scheduleFunc
+        scheduleFunc = fn
+        return s
+    }
+    return schedule
+})()
+
 const createCounter = (id: number) => () => ++id
 const generateSignalID = createCounter(0)
 const generateBranchID = createCounter(0)
@@ -448,7 +470,7 @@ function scheduleBranch(branch: $Branch$) {
         return
     }
 
-    setTimeout(runAllScheduledBranches, 1)
+    schedule(runAllScheduledBranches)
     scheduledBranchArrayScheduled = true
 }
 
