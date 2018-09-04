@@ -7,9 +7,14 @@ import {
     TeardownLogic,
     merge,
 } from 'rxjs'
-import { distinctUntilChanged, share, skip } from 'rxjs/operators'
+import { distinctUntilChanged, mapTo, share, skip } from 'rxjs/operators'
 
-export interface Leaf<T> {
+interface Signal {
+    readonly id: number
+    signal(): Observable<Signal>
+}
+
+export interface Leaf<T> extends Signal {
     value: T
     read(): T
     write(value: T): void
@@ -17,7 +22,7 @@ export interface Leaf<T> {
     subscribe(observable: Observable<T>): Subscription
 }
 
-export interface Twig<T> {
+export interface Twig<T> extends Signal {
     handler?: () => T
     readonly value: T
     dirty: boolean
@@ -38,32 +43,20 @@ export interface Branch {
     setTimeout(callback: (...args: any[]) => void, timeout: number): void
 }
 
-const Symbol_signal = '@@signal'
-
 class $Leaf$<T> implements Leaf<T> {
-    readonly id = generateLeafID()
+    readonly id = generateSignalID()
     _subject?: Subject<T>
-    _signal?: Observable<T>
+    _signal?: Observable<Signal>
     _subscription?: Subscription | null
 
     constructor(public value: T) {}
 
-    get [Symbol_signal]() {
-        return (
-            this._signal ||
-            (this._signal = this.subject().pipe(
-                distinctUntilChanged(),
-                skip(1)
-            ))
-        )
-    }
-
     read() {
         if (currentTwig) {
-            addLeaf(currentTwig, this)
+            addSignal(currentTwig, this)
         }
         if (currentBranch && currentBranch.ready) {
-            addLeaf(currentBranch, this)
+            addSignal(currentBranch, this)
         }
         return this.value
     }
@@ -79,6 +72,16 @@ class $Leaf$<T> implements Leaf<T> {
             (this._subject = new BehaviorSubject<T>(this.value))
         )
     }
+    signal(): Observable<Signal> {
+        return (
+            this._signal ||
+            (this._signal = this.subject().pipe(
+                distinctUntilChanged(),
+                skip(1),
+                mapTo(this)
+            ))
+        )
+    }
     subscribe(observable: Observable<T>) {
         return (this._subscription = observable.subscribe(value => {
             this.value = value
@@ -88,25 +91,17 @@ class $Leaf$<T> implements Leaf<T> {
     }
 }
 
-interface LeafLike {
-    readonly id: number
-    readonly [Symbol_signal]: Observable<any>
-}
-
 class $Twig$<T> implements Twig<T> {
-    readonly id = generateLeafID()
+    readonly id = generateSignalID()
     dirty = true
     _value?: T
-    _leaves?: LeafLike[]
+    _signals?: Signal[]
     _running?: boolean
-    _signal?: Observable<any>
+    _signal?: Observable<Signal>
     _subscription?: Subscription | null
 
     constructor(public handler?: () => T) {}
 
-    get [Symbol_signal]() {
-        return this._signal || NEVER
-    }
     get value() {
         this.dirty && runTwig(this)
         return this._value!
@@ -114,13 +109,16 @@ class $Twig$<T> implements Twig<T> {
 
     read() {
         if (currentTwig && currentTwig !== this) {
-            addLeaf(currentTwig, this)
+            addSignal(currentTwig, this)
         }
         if (currentBranch && currentBranch.ready) {
-            addLeaf(currentBranch, this)
+            addSignal(currentBranch, this)
         }
         this.dirty && runTwig(this)
         return this._value!
+    }
+    signal() {
+        return this._signal || NEVER
     }
 }
 
@@ -130,7 +128,7 @@ class $Branch$ implements Branch {
     _frozen?: boolean
     _stopped?: boolean
     _removed?: boolean
-    _leaves?: LeafLike[]
+    _signals?: Signal[]
     _parent?: $Branch$ | null
     _branches?: $Branch$[] | null
     _subscription?: Subscription | null
@@ -184,7 +182,7 @@ class $Branch$ implements Branch {
 }
 
 const createCounter = (id: number) => () => ++id
-const generateLeafID = createCounter(0)
+const generateSignalID = createCounter(0)
 const generateBranchID = createCounter(0)
 
 let currentTwig = null as $Twig$<any> | null
@@ -308,10 +306,10 @@ function runTwig<T>(twig: $Twig$<T>) {
     currentTwig = twig
     currentBranch = null
 
-    const lastLeaves = twig._leaves || []
-    const latestLeaves = [] as typeof lastLeaves
+    const lastSignals = twig._signals || []
+    const latestSignals = [] as typeof lastSignals
 
-    twig._leaves = latestLeaves
+    twig._signals = latestSignals
     twig._running = true
 
     const handler = twig.handler
@@ -322,32 +320,32 @@ function runTwig<T>(twig: $Twig$<T>) {
         twig._value = handler()
         twig.dirty = false
     } finally {
-        twig._running = false
+        Finally: {
+            twig._running = false
 
-        currentTwig = previousTwig
-        currentBranch = previousBranch
+            currentTwig = previousTwig
+            currentBranch = previousBranch
 
-        do {
-            if (compareTwoArray(lastLeaves, latestLeaves)) {
-                break
+            if (compareTwoArray(lastSignals, latestSignals)) {
+                break Finally
             }
 
             unsubscribeObject(twig)
 
-            if (latestLeaves.length === 0) {
+            if (latestSignals.length === 0) {
                 twig._signal && (twig._signal = NEVER)
-                break
+                break Finally
             }
 
             const observable = (twig._signal =
-                latestLeaves.length === 1
-                    ? latestLeaves[0][Symbol_signal]
-                    : merge(...latestLeaves.map(getSignal)).pipe(share()))
+                latestSignals.length === 1
+                    ? latestSignals[0].signal()
+                    : merge(...latestSignals.map(getSignal)).pipe(share()))
 
             twig._subscription = observable.subscribe(() => {
                 twig.dirty = true
             })
-        } while (false)
+        }
     }
 }
 
@@ -362,10 +360,10 @@ function runBranch(branch: $Branch$) {
     removeAllBranches(branch)
     removeAllTeardowns(branch)
 
-    const lastLeaves = branch._leaves || []
-    const latestLeaves = [] as typeof lastLeaves
+    const lastSignals = branch._signals || []
+    const latestSignals = [] as typeof lastSignals
 
-    branch._leaves = latestLeaves
+    branch._signals = latestSignals
     branch._running = true
     branch._frozen = false
     branch._stopped = false
@@ -374,38 +372,38 @@ function runBranch(branch: $Branch$) {
     try {
         handler && handler(branch)
     } finally {
-        branch._running = false
+        Finally: {
+            branch._running = false
 
-        currentBranch = previousBranch
+            currentBranch = previousBranch
 
-        do {
             if (branch._stopped || branch._removed) {
-                break
+                break Finally
             }
 
-            if (compareTwoArray(lastLeaves, latestLeaves)) {
-                break
+            if (compareTwoArray(lastSignals, latestSignals)) {
+                break Finally
             }
 
             unsubscribeObject(branch)
             unscheduleBranch(branch)
 
-            if (latestLeaves.length === 0) {
-                break
+            if (latestSignals.length === 0) {
+                break Finally
             }
 
-            const observable = merge(...latestLeaves.map(getSignal))
+            const observable = merge(...latestSignals.map(getSignal))
 
             branch._subscription = observable.subscribe(() => {
                 scheduleBranch(branch)
             })
-        } while (false)
+        }
     }
 }
 
 function stopBranch(branch: $Branch$) {
-    const leaves = branch._leaves
-    leaves && (leaves.length = 0)
+    const signals = branch._signals
+    signals && (signals.length = 0)
     unsubscribeObject(branch)
     unscheduleBranch(branch)
     removeAllBranches(branch)
@@ -471,21 +469,21 @@ function unscheduleBranch(branch: $Branch$) {
     }
 }
 
-function addLeaf(x: { _leaves?: LeafLike[] }, leaf: LeafLike) {
-    const leafID = leaf.id
-    const compare = (leaf: LeafLike) => leaf.id >= leafID
+function addSignal(x: { _signals?: Signal[] }, signal: Signal) {
+    const signalID = signal.id
+    const compare = (signal: Signal) => signal.id >= signalID
 
-    const leaves = x._leaves!
-    const index = binarySearch(leaves, compare)
-    if (leaf === leaves[index]) {
+    const signals = x._signals!
+    const index = binarySearch(signals, compare)
+    if (signal === signals[index]) {
         return
     }
 
-    leaves.splice(index, 0, leaf)
+    signals.splice(index, 0, signal)
 }
 
-function getSignal(leaf: LeafLike) {
-    return leaf[Symbol_signal]
+function getSignal(signal: Signal) {
+    return signal.signal()
 }
 
 function unsubscribeObject(x: { _subscription?: Subscription | null }) {
