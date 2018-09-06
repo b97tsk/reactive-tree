@@ -62,15 +62,18 @@ class $Leaf$<T> implements Leaf<T> {
     }
     write(value: T) {
         unsubscribeObject(this)
-        this.value = value
         const subject = this._subject
-        subject && subject.next(value)
+        subject ? subject.next(value) : (this.value = value)
     }
     subject() {
-        return (
-            this._subject ||
-            (this._subject = new BehaviorSubject<T>(this.value))
-        )
+        let subject = this._subject
+        if (subject == null) {
+            subject = this._subject = new BehaviorSubject<T>(this.value)
+            subject.subscribe(value => {
+                this.value = value
+            })
+        }
+        return subject
     }
     signal(): Observable<Signal> {
         return (
@@ -84,9 +87,8 @@ class $Leaf$<T> implements Leaf<T> {
     }
     subscribe(observable: Observable<T>) {
         return (this._subscription = observable.subscribe(value => {
-            this.value = value
             const subject = this._subject
-            subject && subject.next(value)
+            subject ? subject.next(value) : (this.value = value)
         }))
     }
 }
