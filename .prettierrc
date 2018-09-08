@@ -1,0 +1,19 @@
+{
+  "trailingComma": "es5",
+  "overrides": [
+    {
+      "files": "*.ts",
+      "options": {
+        "semi": false,
+        "singleQuote": true,
+        "tabWidth": 4
+      }
+    },
+    {
+      "files": "*.md",
+      "options": {
+        "proseWrap": "always"
+      }
+    }
+  ]
+}
