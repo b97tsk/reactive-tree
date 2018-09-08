@@ -1,7 +1,7 @@
 {
   "name": "reactive-tree",
-  "version": "1.0.0",
-  "description": "Simple library for reactive programming",
+  "version": "1.0.1",
+  "description": "A simple library for reactive programming",
   "main": "index.js",
   "types": "index.d.ts",
   "files": [
@@ -10,12 +10,15 @@
     "*.js.map"
   ],
   "scripts": {
-    "build": "npx tsc",
+    "prepare": "npx tsc",
     "test": "npx mocha -r ts-node/register ./src/*.spec.ts"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/b97tsk/reactive-tree"
+  },
+  "bugs": {
+    "url": "https://github.com/b97tsk/reactive-tree/issues"
   },
   "keywords": [
     "reactive",
