@@ -4,6 +4,12 @@ A simple library for reactive programming.
 
 Requires [RxJS 6](https://github.com/ReactiveX/RxJS).
 
+## Installation
+
+```shell
+npm install reactive-tree
+```
+
 ## Definition
 
 ### Leaves
@@ -22,9 +28,6 @@ console.log(`Hello, ${leaf.value}.`); // Hello, world.
 
 ### Twigs
 
-A twig also behaves like a reactive property if, inside its `handler` function,
-it **reads** values from leaves (or other twigs).
-
 A twig has a cached value that is computed from its `handler` function. It
 computes only if it's **dirty** and someone try to get its value.
 
@@ -34,6 +37,9 @@ A twig gets **dirty** when:
 - it **reads** leaves (or other twigs) inside its `handler` function and any of
   those leaves (or other twigs) reacts, or
 - its `dirty` property is set to true.
+
+A twig also behaves like a reactive property if, inside its `handler` function,
+it **reads** values from leaves (or other twigs).
 
 #### Example: Create a twig
 
@@ -116,7 +122,7 @@ setTimeout(() => {
 //   No book is showing.
 ```
 
-The more branches are nested, the more they look like a tree. I guess.
+The more branches are nested, the more they look like a tree, I guess.
 
 ## API
 
@@ -152,8 +158,8 @@ Creates a branch with a handler.
 function defineLeaf<T>(obj: any, prop: string, value?: T): Leaf<T>;
 ```
 
-Creates a leaf with a value, also defines a property for an object, which is
-corresponding with that leaf:
+Creates a leaf with a value, also defines a property for an object, which
+corresponds with that leaf:
 
 - when you get this property, it returns `leaf.read()`;
 - when you set this property to something, it calls `leaf.write(something)`.
@@ -164,8 +170,8 @@ corresponding with that leaf:
 function defineTwig<T>(obj: any, prop: string, handler?: () => T): Twig<T>;
 ```
 
-Creates a twig with a handler, also defines a property for an object, which is
-corresponding with that twig:
+Creates a twig with a handler, also defines a property for an object, which
+corresponds with that twig:
 
 - when you get this property, it returns `twig.read()`.
 
@@ -236,6 +242,8 @@ and used instead. And then `dirty` is set to false.
 
 If `handler` is not set, an exception throws.
 
+Generally, you should consider using `read()` instead of getting this property.
+
 #### class Twig: dirty
 
 `dirty` indicates whether the twig should update the cached value.
@@ -270,7 +278,7 @@ interface Branch {
 
 #### class Branch: run()
 
-`run()` forces the branch to start [its procedure](#branches) immediately.
+`run()` forces the branch to restart [its procedure](#branches) immediately.
 
 An exception throws if `run()` is called inside the `handler` function.
 
@@ -282,12 +290,13 @@ An exception throws if `run()` is called inside the `handler` function.
 
 `remove()` removes the branch permanently.
 
-You can run a stopped branch again, but not a removed branch.
+You can `run()` or `schedule()` a stopped branch again, but not a removed
+branch.
 
 #### class Branch: freeze()
 
-`freeze()` freezes the branch. No more reactive properties will be collected by
-the branch.
+`freeze()` freezes the branch. Subsequent reactive properties will **NOT** be
+collected by the branch.
 
 `freeze()` should be called inside the `handler` function, otherwise an
 exception throws.
@@ -305,8 +314,8 @@ exception throws.
 
 #### class Branch: schedule()
 
-`schedule()` forces the branch to start [its procedure](#branches) **as soon as
-possible**.
+`schedule()` forces the branch to restart [its procedure](#branches) **as soon
+as possible**.
 
 #### class Branch: unschedule()
 
@@ -318,7 +327,7 @@ possible**.
 removed. This is useful if you need to undo something that is done inside the
 `handler` function.
 
-An exception throws if the branch is stopped or removed.
+An exception throws if the branch has been stopped or removed.
 
 `addTeardown()` should be called inside the `handler` function, otherwise an
 exception throws.
@@ -328,7 +337,7 @@ exception throws.
 `setInterval()` starts a timer. `clearInterval()` is automatically called when
 the branch restarts or stops or is removed.
 
-An exception throws if the branch is stopped or removed.
+An exception throws if the branch has been stopped or removed.
 
 `setInterval()` should be called inside the `handler` function, otherwise an
 exception throws.
@@ -338,7 +347,7 @@ exception throws.
 `setTimeout()` starts a timer. `clearTimeout()` is automatically called when the
 branch restarts or stops or is removed.
 
-An exception throws if the branch is stopped or removed.
+An exception throws if the branch has been stopped or removed.
 
 `setTimeout()` should be called inside the `handler` function, otherwise an
 exception throws.
