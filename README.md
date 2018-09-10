@@ -184,6 +184,7 @@ interface Leaf<T> {
   write(value: T): void;
   subject(): Subject<T>;
   subscribe(observable: Observable<T>): Subscription;
+  unsubscribe(): void;
 }
 ```
 
@@ -217,6 +218,11 @@ The subject responds to `write()` and `subscribe()`.
 `subscribe()` subscribes an RxJS Observable and returns an RxJS Subscription. A
 `write()` cancels this subscription. Each value emitted by this observable is
 written to the leaf, like `write()` but without canceling this subscription.
+
+#### class Leaf: unsubscribe()
+
+`unsubscribe()` cancels all subscriptions created by `subscribe()`. A `write()`
+also cancels all those subscriptions.
 
 ### class Twig
 

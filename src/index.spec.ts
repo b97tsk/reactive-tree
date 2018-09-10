@@ -37,11 +37,32 @@ describe('Leaf', function() {
         leaf.subscribe(of(42))
         expect(leaf.value).to.equal(42)
     })
+    it('subscribe() two observables', function(done) {
+        this.timeout(10000)
+        const leaf = createLeaf(0)
+        leaf.subscribe(of(42))
+        leaf.subscribe(of(NaN).pipe(delay(1)))
+        expect(leaf.value).to.equal(42)
+        setTimeout(() => {
+            expect(leaf.value).to.be.NaN
+            done()
+        }, 10)
+    })
     it('write() cancels subscribe()', function(done) {
         this.timeout(10000)
-        const leaf = createLeaf(NaN)
-        leaf.subscribe(of(0).pipe(delay(1)))
+        const leaf = createLeaf(0)
+        leaf.subscribe(of(NaN).pipe(delay(1)))
         leaf.write(42)
+        setTimeout(() => {
+            expect(leaf.value).to.equal(42)
+            done()
+        }, 10)
+    })
+    it('unsubscribe() cancels subscribe()', function(done) {
+        this.timeout(10000)
+        const leaf = createLeaf(42)
+        leaf.subscribe(of(NaN).pipe(delay(1)))
+        leaf.unsubscribe()
         setTimeout(() => {
             expect(leaf.value).to.equal(42)
             done()

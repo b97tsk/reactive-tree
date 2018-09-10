@@ -20,6 +20,7 @@ export interface Leaf<T> extends Signal {
     write(value: T): void
     subject(): Subject<T>
     subscribe(observable: Observable<T>): Subscription
+    unsubscribe(): void
 }
 
 export interface Twig<T> extends Signal {
@@ -86,10 +87,17 @@ class $Leaf$<T> implements Leaf<T> {
         )
     }
     subscribe(observable: Observable<T>) {
-        return (this._subscription = observable.subscribe(value => {
-            const subject = this._subject
-            subject ? subject.next(value) : (this.value = value)
-        }))
+        const subscription =
+            this._subscription || (this._subscription = new Subscription())
+        return subscription.add(
+            observable.subscribe(value => {
+                const subject = this._subject
+                subject ? subject.next(value) : (this.value = value)
+            })
+        )
+    }
+    unsubscribe() {
+        unsubscribeObject(this)
     }
 }
 
@@ -350,7 +358,7 @@ function runTwig<T>(twig: $Twig$<T>) {
             currentTwig = previousTwig
             currentBranch = previousBranch
 
-            if (compareTwoArray(lastSignals, latestSignals)) {
+            if (compareTwoArrays(lastSignals, latestSignals)) {
                 break Finally
             }
 
@@ -405,7 +413,7 @@ function runBranch(branch: $Branch$) {
                 break Finally
             }
 
-            if (compareTwoArray(lastSignals, latestSignals)) {
+            if (compareTwoArrays(lastSignals, latestSignals)) {
                 break Finally
             }
 
@@ -528,7 +536,7 @@ function binarySearch<T>(array: T[], pred: (x: T) => boolean) {
     return hi
 }
 
-function compareTwoArray<T>(a: T[], b: T[]) {
+function compareTwoArrays<T>(a: T[], b: T[]) {
     const { length } = a
     if (length !== b.length) {
         return false
