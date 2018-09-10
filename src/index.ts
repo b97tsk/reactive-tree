@@ -49,6 +49,7 @@ class $Leaf$<T> implements Leaf<T> {
     _subject?: Subject<T>
     _signal?: Observable<Signal>
     _subscription?: Subscription | null
+    _subscriptionMany?: Subscription | null
 
     constructor(public value: T) {}
 
@@ -62,7 +63,7 @@ class $Leaf$<T> implements Leaf<T> {
         return this.value
     }
     write(value: T) {
-        unsubscribeObject(this)
+        this.unsubscribe()
         const subject = this._subject
         subject ? subject.next(value) : (this.value = value)
     }
@@ -87,16 +88,31 @@ class $Leaf$<T> implements Leaf<T> {
         )
     }
     subscribe(observable: Observable<T>) {
-        const subscription =
-            this._subscription || (this._subscription = new Subscription())
-        return subscription.add(
-            observable.subscribe(value => {
-                const subject = this._subject
-                subject ? subject.next(value) : (this.value = value)
-            })
-        )
+        const subscription = observable.subscribe(value => {
+            const subject = this._subject
+            subject ? subject.next(value) : (this.value = value)
+        })
+        const single = this._subscription
+        if (single == null) {
+            return (this._subscription = subscription)
+        }
+        let subscriptionMany = this._subscriptionMany
+        if (subscriptionMany == null) {
+            if (single.closed) {
+                return (this._subscription = subscription)
+            }
+            subscriptionMany = this._subscriptionMany = new Subscription()
+            subscriptionMany.add(single)
+        }
+        return subscriptionMany.add(subscription)
     }
     unsubscribe() {
+        const subscriptionMany = this._subscriptionMany
+        if (subscriptionMany) {
+            this._subscription = this._subscriptionMany = null
+            subscriptionMany.unsubscribe()
+            return
+        }
         unsubscribeObject(this)
     }
 }
