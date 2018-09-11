@@ -26,10 +26,14 @@ const leaf = createLeaf("world");
 console.log(`Hello, ${leaf.value}.`); // Hello, world.
 ```
 
+This example doesn't show how a leaf reacts when its value changes. Let's keep
+reading.
+
 ### Twigs
 
-A twig has a cached value that is computed from its `handler` function. It
-computes only if it's **dirty** and someone try to get its value.
+A twig is like a cached computed property. It has a value that is computed from
+its `handler` function. It computes only when someone try to get its value and
+it's **dirty**.
 
 A twig gets **dirty** when:
 
@@ -53,6 +57,11 @@ console.log(twig.value); // Hello, world.
 leaf.write("kitty");
 console.log(twig.value); // Hello, kitty.
 ```
+
+Now you can see that this line `leaf.write("kitty");` causes the leaf reacts,
+which causes the twig becomes **dirty**, because the twig **reads** the leaf
+inside its `handler` function. Thus, the second `twig.value` now has a different
+value.
 
 ### Branches
 
@@ -78,6 +87,14 @@ leaf.write("kitty");
 //   Hello, world.
 //   Hello, kitty.
 ```
+
+Basically, this example illustrates how a branch reacts when any of reactive
+properties inside its `handler` function changes. Things you should know that:
+
+- `createBranch()` immediately calls its sole argument, the `handler` function,
+  which produces the first line of output;
+- the second line of output does not immediately show up, but the gap is too
+  small to be noticed.
 
 Branches can be nested with each other.
 
