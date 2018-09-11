@@ -1,26 +1,26 @@
-import 'mocha'
 import { expect } from 'chai'
-import { createBranch, createLeaf, createTwig, schedule } from '.'
+import 'mocha'
 import { of } from 'rxjs'
 import { delay } from 'rxjs/operators'
+import { createBranch, createLeaf, createTwig, schedule } from '.'
 
-describe('Leaf', function() {
-    it('createLeaf() with a value', function() {
+describe('Leaf', () => {
+    it('createLeaf() with a value', () => {
         const leaf = createLeaf(42)
         expect(leaf.value).to.equal(42)
     })
-    it('value === read()', function() {
+    it('value === read()', () => {
         const leaf = createLeaf(42)
         expect(leaf.value)
             .to.equal(42)
             .and.equal(leaf.read())
     })
-    it('write() a value', function() {
+    it('write() a value', () => {
         const leaf = createLeaf(NaN)
         leaf.write(42)
         expect(leaf.value).to.equal(42)
     })
-    it('write() mirrors to subject()', function() {
+    it('write() mirrors to subject()', () => {
         const leaf = createLeaf(NaN)
         let value = leaf.value
         expect(value).to.be.NaN
@@ -32,7 +32,7 @@ describe('Leaf', function() {
         leaf.write(42)
         expect(value).to.equal(42)
     })
-    it('subscribe() an observable', function() {
+    it('subscribe() an observable', () => {
         const leaf = createLeaf(NaN)
         leaf.subscribe(of(42))
         expect(leaf.value).to.equal(42)
@@ -69,25 +69,25 @@ describe('Leaf', function() {
         }, 10)
     })
 })
-describe('Twig', function() {
-    it('createTwig() with a handler', function() {
+describe('Twig', () => {
+    it('createTwig() with a handler', () => {
         const handler = () => 42
         const twig = createTwig(handler)
         expect(twig.handler).to.equal(handler)
     })
-    it('value === read()', function() {
+    it('value === read()', () => {
         const twig = createTwig(() => 42)
         expect(twig.value)
             .to.equal(42)
             .and.equal(twig.read())
     })
-    it('dirty at first', function() {
+    it('dirty at first', () => {
         const twig = createTwig(() => 42)
         expect(twig.dirty).to.be.true
         expect(twig.value).to.equal(42)
         expect(twig.dirty).to.be.false
     })
-    it('call handler only if dirty', function() {
+    it('call handler only if dirty', () => {
         const twig = createTwig(() => {
             throw 42
         })
@@ -97,7 +97,7 @@ describe('Twig', function() {
         twig.dirty = false
         expect(() => twig.value).to.not.throw()
     })
-    it('use leaves inside handler', function() {
+    it('use leaves inside handler', () => {
         const leaf_a = createLeaf(0)
         const leaf_b = createLeaf(0)
         const twig = createTwig(() => leaf_a.read() + leaf_b.read())
@@ -108,8 +108,8 @@ describe('Twig', function() {
         expect(twig.value).to.equal(42)
     })
 })
-describe('Branch', function() {
-    it('createBranch() with a handler', function() {
+describe('Branch', () => {
+    it('createBranch() with a handler', () => {
         let value = NaN
         const handler = () => {
             value = 42
@@ -118,7 +118,7 @@ describe('Branch', function() {
         expect(branch.handler).to.equal(handler)
         expect(value).to.equal(42)
     })
-    it('run() a branch manually', function() {
+    it('run() a branch manually', () => {
         let value = 40
         const branch = createBranch(() => {
             ++value
@@ -126,7 +126,7 @@ describe('Branch', function() {
         branch.run()
         expect(value).to.equal(42)
     })
-    it('remove() a branch permanently', function() {
+    it('remove() a branch permanently', () => {
         let value = 40
         const branch = createBranch(() => {
             value += 2
@@ -278,7 +278,7 @@ describe('Branch', function() {
             done()
         })
     })
-    it('addTeardown()', function() {
+    it('addTeardown()', () => {
         let value = NaN
         const branch = createBranch(branch => {
             branch.addTeardown(() => {

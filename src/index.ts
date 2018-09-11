@@ -1,11 +1,11 @@
 import {
+    merge,
     BehaviorSubject,
     NEVER,
     Observable,
     Subject,
     Subscription,
     TeardownLogic,
-    merge,
 } from 'rxjs'
 import { distinctUntilChanged, mapTo, share, skip } from 'rxjs/operators'
 
@@ -209,8 +209,7 @@ class $Branch$ implements Branch {
 
 export type ScheduleFunc = (callback: (...args: any[]) => void) => void
 
-type ScheduleObject = {
-    (callback: (...args: any[]) => void): void
+interface ScheduleObject extends ScheduleFunc {
     replace(fn: ScheduleFunc): ScheduleFunc
 }
 
@@ -218,7 +217,7 @@ export const schedule: ScheduleObject = (() => {
     let scheduleFunc: ScheduleFunc = (callback: (...args: any[]) => void) => {
         setTimeout(callback, 1)
     }
-    let schedule: any = (callback: (...args: any[]) => void) => {
+    const schedule: any = (callback: (...args: any[]) => void) => {
         scheduleFunc(callback)
     }
     schedule.replace = (fn: ScheduleFunc): ScheduleFunc => {
@@ -543,8 +542,8 @@ function unsubscribeObject(x: { _subscription?: Subscription | null }) {
 }
 
 function binarySearch<T>(array: T[], pred: (x: T) => boolean) {
-    let lo = -1,
-        hi = array.length
+    let lo = -1
+    let hi = array.length
     while (1 + lo !== hi) {
         const mi = lo + ((hi - lo) >> 1)
         pred(array[mi]) ? (hi = mi) : (lo = mi)
