@@ -14,7 +14,7 @@ interface Signal {
     signal(): Observable<Signal>
 }
 
-export interface Leaf<T> extends Signal {
+export interface Leaf<T> {
     value: T
     read(): T
     write(value: T): void
@@ -23,7 +23,7 @@ export interface Leaf<T> extends Signal {
     unsubscribe(): void
 }
 
-export interface Twig<T> extends Signal {
+export interface Twig<T> {
     handler?: () => T
     readonly value: T
     dirty: boolean
@@ -387,7 +387,7 @@ function runTwig<T>(twig: $Twig$<T>) {
 
             const observable = (twig._signal =
                 latestSignals.length === 1
-                    ? latestSignals[0].signal()
+                    ? getSignal(latestSignals[0])
                     : merge(...latestSignals.map(getSignal)).pipe(share()))
 
             twig._subscription = observable.subscribe(() => {
