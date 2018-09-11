@@ -350,8 +350,6 @@ as possible**.
 removed. This is useful if you need to undo something that is done inside the
 `handler` function.
 
-An exception throws if the branch has been stopped or removed.
-
 `addTeardown()` should be called inside the `handler` function, otherwise an
 exception throws.
 
@@ -360,8 +358,6 @@ exception throws.
 `setInterval()` starts a timer. `clearInterval()` is automatically called when
 the branch restarts or stops or is removed.
 
-An exception throws if the branch has been stopped or removed.
-
 `setInterval()` should be called inside the `handler` function, otherwise an
 exception throws.
 
@@ -369,8 +365,6 @@ exception throws.
 
 `setTimeout()` starts a timer. `clearTimeout()` is automatically called when the
 branch restarts or stops or is removed.
-
-An exception throws if the branch has been stopped or removed.
 
 `setTimeout()` should be called inside the `handler` function, otherwise an
 exception throws.

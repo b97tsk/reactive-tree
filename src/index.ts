@@ -194,16 +194,16 @@ class $Branch$ implements Branch {
         addTeardown(this, teardown)
     }
     setInterval(callback: (...args: any[]) => void, interval: number) {
+        const id = setInterval(callback, interval)
         addTeardown(this, () => {
             clearInterval(id)
         })
-        const id = setInterval(callback, interval)
     }
     setTimeout(callback: (...args: any[]) => void, timeout: number) {
+        const id = setTimeout(callback, timeout)
         addTeardown(this, () => {
             clearTimeout(id)
         })
-        const id = setTimeout(callback, timeout)
     }
 }
 
@@ -323,16 +323,17 @@ function removeAllBranches(branch: $Branch$) {
 }
 
 function addTeardown(branch: $Branch$, teardown: TeardownLogic) {
+    let subscription = branch._teardownSubscription
+    if (subscription == null) {
+        subscription = branch._teardownSubscription = new Subscription()
+        if (!branch._running || branch._stopped || branch._removed) {
+            subscription.unsubscribe()
+        }
+    }
+    subscription.add(teardown)
     if (!branch._running) {
         throw new Error('branch is not running')
     }
-    if (branch._stopped || branch._removed) {
-        throw new Error('branch is stopped or removed')
-    }
-    const subscription =
-        branch._teardownSubscription ||
-        (branch._teardownSubscription = new Subscription())
-    subscription.add(teardown)
 }
 
 function removeAllTeardowns(branch: $Branch$) {
