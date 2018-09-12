@@ -368,6 +368,7 @@ function runTwig<T>(twig: $Twig$<T>) {
         twig._value = handler()
         twig.dirty = false
     } finally {
+        // tslint:disable-next-line:label-position
         Finally: {
             twig._running = false
 
@@ -420,6 +421,7 @@ function runBranch(branch: $Branch$) {
     try {
         handler && handler(branch)
     } finally {
+        // tslint:disable-next-line:label-position
         Finally: {
             branch._running = false
 
@@ -464,6 +466,7 @@ function runAllScheduledBranches() {
     scheduledBranchArray = []
     scheduledBranchArrayScheduled = false
     try {
+        // tslint:disable-next-line:no-conditional-assignment
         while ((runningBranch = runningBranchArray.pop())) {
             runBranch(runningBranch)
         }
