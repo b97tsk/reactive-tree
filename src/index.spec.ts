@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import 'mocha'
+import { describe, it } from 'mocha'
 import { of } from 'rxjs'
 import { delay } from 'rxjs/operators'
 import { createBranch, createLeaf, createTwig, schedule } from '.'
@@ -37,8 +37,7 @@ describe('Leaf', () => {
         leaf.subscribe(of(42))
         expect(leaf.value).to.equal(42)
     })
-    it('subscribe() two observables', function(done) {
-        this.timeout(10000)
+    it('subscribe() two observables', done => {
         const leaf = createLeaf(0)
         leaf.subscribe(of(42))
         leaf.subscribe(of(NaN).pipe(delay(1)))
@@ -46,27 +45,25 @@ describe('Leaf', () => {
         setTimeout(() => {
             expect(leaf.value).to.be.NaN
             done()
-        }, 10)
+        }, 2)
     })
-    it('write() cancels subscribe()', function(done) {
-        this.timeout(10000)
+    it('write() cancels subscribe()', done => {
         const leaf = createLeaf(0)
         leaf.subscribe(of(NaN).pipe(delay(1)))
         leaf.write(42)
         setTimeout(() => {
             expect(leaf.value).to.equal(42)
             done()
-        }, 10)
+        }, 2)
     })
-    it('unsubscribe() cancels subscribe()', function(done) {
-        this.timeout(10000)
+    it('unsubscribe() cancels subscribe()', done => {
         const leaf = createLeaf(42)
         leaf.subscribe(of(NaN).pipe(delay(1)))
         leaf.unsubscribe()
         setTimeout(() => {
             expect(leaf.value).to.equal(42)
             done()
-        }, 10)
+        }, 2)
     })
 })
 describe('Twig', () => {
@@ -135,8 +132,7 @@ describe('Branch', () => {
         branch.run()
         expect(value).to.equal(42)
     })
-    it('use leaves inside handler', function(done) {
-        this.timeout(10000)
+    it('use leaves inside handler', done => {
         const leaf_a = createLeaf(0)
         const leaf_b = createLeaf(0)
         let value = NaN
@@ -156,8 +152,7 @@ describe('Branch', () => {
             })
         })
     })
-    it('use twigs inside handler', function(done) {
-        this.timeout(10000)
+    it('use twigs inside handler', done => {
         const leaf_a = createLeaf(0)
         const leaf_b = createLeaf(0)
         const twig_a = createTwig(() => leaf_a.read() + leaf_b.read())
@@ -181,8 +176,7 @@ describe('Branch', () => {
             })
         })
     })
-    it('use branches inside handler (nesting)', function(done) {
-        this.timeout(10000)
+    it('use branches inside handler (nesting)', done => {
         const leaf_a = createLeaf(3)
         const leaf_b = createLeaf(5)
         let value = 0
@@ -203,8 +197,7 @@ describe('Branch', () => {
             })
         })
     })
-    it('stop() and run() again', function(done) {
-        this.timeout(10000)
+    it('stop() and run() again', done => {
         const leaf = createLeaf(0)
         let value = NaN
         const branch = createBranch(() => {
@@ -226,8 +219,7 @@ describe('Branch', () => {
             })
         })
     })
-    it('freeze() and unfreeze()', function(done) {
-        this.timeout(10000)
+    it('freeze() and unfreeze()', done => {
         const leaf_a = createLeaf(0)
         const leaf_b = createLeaf(0)
         let value = NaN
@@ -251,8 +243,7 @@ describe('Branch', () => {
             })
         })
     })
-    it('schedule() a branch manually', function(done) {
-        this.timeout(10000)
+    it('schedule() a branch manually', done => {
         let value = 40
         const branch = createBranch(() => {
             ++value
@@ -264,8 +255,7 @@ describe('Branch', () => {
             done()
         })
     })
-    it('schedule() and unschedule()', function(done) {
-        this.timeout(10000)
+    it('schedule() and unschedule()', done => {
         let value = 40
         const branch = createBranch(() => {
             value += 2
