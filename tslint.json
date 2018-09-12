@@ -7,11 +7,9 @@
   "rules": {
     "arrow-parens": false,
     "interface-name": false,
-    "label-position": false,
     "max-classes-per-file": false,
     "member-access": false,
     "no-bitwise": false,
-    "no-conditional-assignment": false,
     "no-shadowed-variable": false,
     "no-unused-expression": false,
     "object-literal-sort-keys": false,
