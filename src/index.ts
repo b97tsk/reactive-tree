@@ -14,37 +14,7 @@ interface Signal {
     signal(): Observable<Signal>
 }
 
-export interface Leaf<T> {
-    value: T
-    read(): T
-    write(value: T): void
-    subject(): Subject<T>
-    subscribe(observable: Observable<T>): Subscription
-    unsubscribe(): void
-}
-
-export interface Twig<T> {
-    handler?: () => T
-    readonly value: T
-    dirty: boolean
-    read(): T
-}
-
-export interface Branch {
-    handler?: (branch: Branch) => void
-    run(): void
-    stop(): void
-    remove(): void
-    freeze(): void
-    unfreeze(): void
-    schedule(): void
-    unschedule(): void
-    addTeardown(teardown: TeardownLogic): void
-    setInterval(callback: (...args: any[]) => void, interval: number): void
-    setTimeout(callback: (...args: any[]) => void, timeout: number): void
-}
-
-class $Leaf$<T> implements Leaf<T> {
+export class Leaf<T> {
     readonly id = generateSignalID()
     _subject?: Subject<T>
     _signal?: Observable<Signal>
@@ -117,7 +87,7 @@ class $Leaf$<T> implements Leaf<T> {
     }
 }
 
-class $Twig$<T> implements Twig<T> {
+export class Twig<T> {
     readonly id = generateSignalID()
     dirty = true
     _value?: T
@@ -148,15 +118,15 @@ class $Twig$<T> implements Twig<T> {
     }
 }
 
-class $Branch$ implements Branch {
+export class Branch {
     readonly id = generateBranchID()
     _running?: boolean
     _frozen?: boolean
     _stopped?: boolean
     _removed?: boolean
     _signals?: Signal[]
-    _parent?: $Branch$ | null
-    _branches?: $Branch$[] | null
+    _parent?: Branch | null
+    _branches?: Branch[] | null
     _subscription?: Subscription | null
     _teardownSubscription?: Subscription | null
 
@@ -243,15 +213,15 @@ const createCounter = (id: number) => () => ++id
 const generateSignalID = createCounter(0)
 const generateBranchID = createCounter(0)
 
-let currentTwig = null as $Twig$<any> | null
-let currentBranch = null as $Branch$ | null
-let scheduledBranchArray = [] as $Branch$[]
+let currentTwig = null as Twig<any> | null
+let currentBranch = null as Branch | null
+let scheduledBranchArray = [] as Branch[]
 let scheduledBranchArrayScheduled = false
-let runningBranchArray = null as $Branch$[] | null
-let runningBranch = null as $Branch$ | null | undefined
+let runningBranchArray = null as Branch[] | null
+let runningBranch = null as Branch | null | undefined
 
 export function createLeaf<T>(value: T): Leaf<T> {
-    return new $Leaf$<T>(value)
+    return new Leaf<T>(value)
 }
 
 export function defineLeaf<T>(
@@ -259,7 +229,7 @@ export function defineLeaf<T>(
     prop: string | number | symbol,
     value?: T
 ): Leaf<T> {
-    const leaf = new $Leaf$<T>(arguments.length < 3 ? obj[prop] : value)
+    const leaf = new Leaf<T>(arguments.length < 3 ? obj[prop] : value)
     Object.defineProperty(obj, prop, {
         get() {
             return leaf.read()
@@ -274,7 +244,7 @@ export function defineLeaf<T>(
 }
 
 export function createTwig<T>(handler?: () => T): Twig<T> {
-    return new $Twig$<T>(handler)
+    return new Twig<T>(handler)
 }
 
 export function defineTwig<T>(
@@ -282,7 +252,7 @@ export function defineTwig<T>(
     prop: string | number | symbol,
     handler?: () => T
 ): Twig<T> {
-    const twig = new $Twig$<T>(handler)
+    const twig = new Twig<T>(handler)
     Object.defineProperty(obj, prop, {
         get() {
             return twig.read()
@@ -294,10 +264,10 @@ export function defineTwig<T>(
 }
 
 export function createBranch(handler?: (branch: Branch) => void): Branch {
-    return new $Branch$(handler)
+    return new Branch(handler)
 }
 
-function removeBranch(branch: $Branch$) {
+function removeBranch(branch: Branch) {
     if (branch._removed) {
         return
     }
@@ -314,7 +284,7 @@ function removeBranch(branch: $Branch$) {
     branch._removed = true
 }
 
-function removeAllBranches(branch: $Branch$) {
+function removeAllBranches(branch: Branch) {
     const branches = branch._branches
     if (branches) {
         branches.forEach(stopBranch)
@@ -322,7 +292,7 @@ function removeAllBranches(branch: $Branch$) {
     }
 }
 
-function addTeardown(branch: $Branch$, teardown: TeardownLogic) {
+function addTeardown(branch: Branch, teardown: TeardownLogic) {
     let subscription = branch._teardownSubscription
     if (subscription == null) {
         subscription = branch._teardownSubscription = new Subscription()
@@ -336,7 +306,7 @@ function addTeardown(branch: $Branch$, teardown: TeardownLogic) {
     }
 }
 
-function removeAllTeardowns(branch: $Branch$) {
+function removeAllTeardowns(branch: Branch) {
     const subscription = branch._teardownSubscription
     if (subscription) {
         branch._teardownSubscription = null
@@ -344,7 +314,7 @@ function removeAllTeardowns(branch: $Branch$) {
     }
 }
 
-function runTwig<T>(twig: $Twig$<T>) {
+function runTwig<T>(twig: Twig<T>) {
     if (twig._running) {
         return
     }
@@ -398,7 +368,7 @@ function runTwig<T>(twig: $Twig$<T>) {
     }
 }
 
-function runBranch(branch: $Branch$) {
+function runBranch(branch: Branch) {
     if (branch._removed) {
         return
     }
@@ -451,7 +421,7 @@ function runBranch(branch: $Branch$) {
     }
 }
 
-function stopBranch(branch: $Branch$) {
+function stopBranch(branch: Branch) {
     const signals = branch._signals
     signals && (signals.length = 0)
     unsubscribeObject(branch)
@@ -476,9 +446,9 @@ function runAllScheduledBranches() {
     }
 }
 
-function scheduleBranch(branch: $Branch$) {
+function scheduleBranch(branch: Branch) {
     const branchID = branch.id
-    const compare = (branch: $Branch$) => branch.id <= branchID
+    const compare = (branch: Branch) => branch.id <= branchID
 
     if (runningBranch && branchID > runningBranch.id) {
         const index = binarySearch(runningBranchArray!, compare)
@@ -503,9 +473,9 @@ function scheduleBranch(branch: $Branch$) {
     scheduledBranchArrayScheduled = true
 }
 
-function unscheduleBranch(branch: $Branch$) {
+function unscheduleBranch(branch: Branch) {
     const branchID = branch.id
-    const compare = (branch: $Branch$) => branch.id <= branchID
+    const compare = (branch: Branch) => branch.id <= branchID
 
     const index = binarySearch(scheduledBranchArray, compare)
     if (branch === scheduledBranchArray[index]) {
