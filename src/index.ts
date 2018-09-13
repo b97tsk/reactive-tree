@@ -417,7 +417,6 @@ function runBranch(branch: Branch) {
             }
 
             unsubscribeObject(branch)
-            unscheduleBranch(branch)
 
             if (latestSignals.length === 0) {
                 break Finally
