@@ -9,20 +9,73 @@ import {
 } from 'rxjs'
 import { distinctUntilChanged, mapTo, share, skip } from 'rxjs/operators'
 
+export function createLeaf<T>(value: T): Leaf<T> {
+    return new Leaf<T>(value)
+}
+
+export function createTwig<T>(handler?: () => T): Twig<T> {
+    return new Twig<T>(handler)
+}
+
+export function createBranch(handler?: (branch: Branch) => void): Branch {
+    return new Branch(handler)
+}
+
+export function defineLeaf<T>(
+    obj: any,
+    prop: string | number | symbol,
+    value?: T
+): Leaf<T> {
+    const leaf = new Leaf<T>(arguments.length < 3 ? obj[prop] : value)
+    Object.defineProperty(obj, prop, {
+        get() {
+            return leaf.read()
+        },
+        set(value) {
+            leaf.write(value)
+        },
+        enumerable: true,
+        configurable: true,
+    })
+    return leaf
+}
+
+export function defineTwig<T>(
+    obj: any,
+    prop: string | number | symbol,
+    handler?: () => T
+): Twig<T> {
+    const twig = new Twig<T>(handler)
+    Object.defineProperty(obj, prop, {
+        get() {
+            return twig.read()
+        },
+        enumerable: true,
+        configurable: true,
+    })
+    return twig
+}
+
 interface Signal {
     readonly id: number
     signal(): Observable<Signal>
 }
 
 export class Leaf<T> {
+    static create = createLeaf
+    static define = defineLeaf
+
     /** @internal */ readonly id = generateSignalID()
+    value: T
     /** @internal */ _subject?: Subject<T>
     /** @internal */ _signal?: Observable<Signal>
     /** @internal */ _subscription?: Subscription | null
     /** @internal */ _subscriptionMany?: Subscription | null
 
     /** @internal */
-    constructor(public value: T) {}
+    constructor(value: T) {
+        this.value = value
+    }
 
     read() {
         if (currentTwig) {
@@ -90,6 +143,9 @@ export class Leaf<T> {
 }
 
 export class Twig<T> {
+    static create = createTwig
+    static define = defineTwig
+
     /** @internal */ readonly id = generateSignalID()
     handler?: () => T
     dirty = true
@@ -126,6 +182,8 @@ export class Twig<T> {
 }
 
 export class Branch {
+    static create = createBranch
+
     /** @internal */ readonly id = generateBranchID()
     handler?: (branch: Branch) => void
     /** @internal */ _running?: boolean
@@ -230,53 +288,6 @@ let scheduledBranchArray = [] as Branch[]
 let scheduledBranchArrayScheduled = false
 let runningBranchArray = null as Branch[] | null
 let runningBranch = null as Branch | null | undefined
-
-export function createLeaf<T>(value: T): Leaf<T> {
-    return new Leaf<T>(value)
-}
-
-export function defineLeaf<T>(
-    obj: any,
-    prop: string | number | symbol,
-    value?: T
-): Leaf<T> {
-    const leaf = new Leaf<T>(arguments.length < 3 ? obj[prop] : value)
-    Object.defineProperty(obj, prop, {
-        get() {
-            return leaf.read()
-        },
-        set(value) {
-            leaf.write(value)
-        },
-        enumerable: true,
-        configurable: true,
-    })
-    return leaf
-}
-
-export function createTwig<T>(handler?: () => T): Twig<T> {
-    return new Twig<T>(handler)
-}
-
-export function defineTwig<T>(
-    obj: any,
-    prop: string | number | symbol,
-    handler?: () => T
-): Twig<T> {
-    const twig = new Twig<T>(handler)
-    Object.defineProperty(obj, prop, {
-        get() {
-            return twig.read()
-        },
-        enumerable: true,
-        configurable: true,
-    })
-    return twig
-}
-
-export function createBranch(handler?: (branch: Branch) => void): Branch {
-    return new Branch(handler)
-}
 
 function removeBranch(branch: Branch) {
     if (branch._removed) {
