@@ -15,12 +15,13 @@ interface Signal {
 }
 
 export class Leaf<T> {
-    readonly id = generateSignalID()
-    _subject?: Subject<T>
-    _signal?: Observable<Signal>
-    _subscription?: Subscription | null
-    _subscriptionMany?: Subscription | null
+    /** @internal */ readonly id = generateSignalID()
+    /** @internal */ _subject?: Subject<T>
+    /** @internal */ _signal?: Observable<Signal>
+    /** @internal */ _subscription?: Subscription | null
+    /** @internal */ _subscriptionMany?: Subscription | null
 
+    /** @internal */
     constructor(public value: T) {}
 
     read() {
@@ -47,6 +48,7 @@ export class Leaf<T> {
         }
         return subject
     }
+    /** @internal */
     signal(): Observable<Signal> {
         return (
             this._signal ||
@@ -88,22 +90,26 @@ export class Leaf<T> {
 }
 
 export class Twig<T> {
-    readonly id = generateSignalID()
+    /** @internal */ readonly id = generateSignalID()
+    handler?: () => T
     dirty = true
-    _value?: T
-    _signals?: Signal[]
-    _running?: boolean
-    _signal?: Observable<Signal>
-    _subscription?: Subscription | null
+    /** @internal */ _value?: T
+    /** @internal */ _signals?: Signal[]
+    /** @internal */ _running?: boolean
+    /** @internal */ _signal?: Observable<Signal>
+    /** @internal */ _subscription?: Subscription | null
 
-    constructor(public handler?: () => T) {}
+    /** @internal */
+    constructor(handler?: () => T) {
+        this.handler = handler
+    }
 
-    get value() {
+    get value(): T {
         this.dirty && runTwig(this)
         return this._value!
     }
 
-    read() {
+    read(): T {
         if (currentTwig && currentTwig !== this) {
             addSignal(currentTwig, this)
         }
@@ -113,24 +119,27 @@ export class Twig<T> {
         this.dirty && runTwig(this)
         return this._value!
     }
+    /** @internal */
     signal() {
         return this._signal || NEVER
     }
 }
 
 export class Branch {
-    readonly id = generateBranchID()
-    _running?: boolean
-    _frozen?: boolean
-    _stopped?: boolean
-    _removed?: boolean
-    _signals?: Signal[]
-    _parent?: Branch | null
-    _branches?: Branch[] | null
-    _subscription?: Subscription | null
-    _teardownSubscription?: Subscription | null
+    /** @internal */ readonly id = generateBranchID()
+    handler?: (branch: Branch) => void
+    /** @internal */ _running?: boolean
+    /** @internal */ _frozen?: boolean
+    /** @internal */ _stopped?: boolean
+    /** @internal */ _removed?: boolean
+    /** @internal */ _signals?: Signal[]
+    /** @internal */ _parent?: Branch | null
+    /** @internal */ _branches?: Branch[] | null
+    /** @internal */ _subscription?: Subscription | null
+    /** @internal */ _teardownSubscription?: Subscription | null
 
-    constructor(public handler?: (branch: Branch) => void) {
+    /** @internal */
+    constructor(handler?: (branch: Branch) => void) {
         if (currentTwig) {
             throw new Error('creating branches on a twig is forbidden')
         }
@@ -140,9 +149,11 @@ export class Branch {
             branches.push(this)
             this._parent = parent
         }
+        this.handler = handler
         handler && runBranch(this)
     }
 
+    /** @internal */
     get ready() {
         return !this._frozen && !this._stopped && !this._removed
     }
