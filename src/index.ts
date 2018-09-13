@@ -160,7 +160,18 @@ class $Branch$ implements Branch {
     _subscription?: Subscription | null
     _teardownSubscription?: Subscription | null
 
-    constructor(public handler?: (branch: Branch) => void) {}
+    constructor(public handler?: (branch: Branch) => void) {
+        if (currentTwig) {
+            throw new Error('creating branches on a twig is forbidden')
+        }
+        if (currentBranch) {
+            const parent = currentBranch
+            const branches = parent._branches || (parent._branches = [])
+            branches.push(this)
+            this._parent = parent
+        }
+        handler && runBranch(this)
+    }
 
     get ready() {
         return !this._frozen && !this._stopped && !this._removed
@@ -283,18 +294,7 @@ export function defineTwig<T>(
 }
 
 export function createBranch(handler?: (branch: Branch) => void): Branch {
-    if (currentTwig) {
-        throw new Error('creating branches on a twig is forbidden')
-    }
-    const branch = new $Branch$(handler)
-    if (currentBranch) {
-        const parent = currentBranch
-        const branches = parent._branches || (parent._branches = [])
-        branches.push(branch)
-        branch._parent = parent
-    }
-    handler && runBranch(branch)
-    return branch
+    return new $Branch$(handler)
 }
 
 function removeBranch(branch: $Branch$) {
@@ -360,8 +360,8 @@ function runTwig<T>(twig: $Twig$<T>) {
     twig._signals = latestSignals
     twig._running = true
 
-    const handler = twig.handler
     try {
+        const { handler } = twig
         if (handler == null) {
             throw new Error('handler is not set')
         }
@@ -417,8 +417,8 @@ function runBranch(branch: $Branch$) {
     branch._frozen = false
     branch._stopped = false
 
-    const handler = branch.handler
     try {
+        const { handler } = branch
         handler && handler(branch)
     } finally {
         // tslint:disable-next-line:label-position
