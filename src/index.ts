@@ -56,17 +56,34 @@ export function defineTwig<T>(
     return twig
 }
 
+const ID = '@@id'
+const SIGNAL = '@@signal'
+
 interface Signal {
-    readonly id: number
-    signal(): Observable<Signal>
+    readonly [ID]: number
+    readonly [SIGNAL]: Observable<Signal>
 }
 
 export class Leaf<T> {
     static create = createLeaf
-    static define = defineLeaf
+    static define = defineLeaf;
 
-    /** @internal */ readonly id = generateSignalID()
+    /** @internal */
+    readonly [ID] = generateSignalID()
+    /** @internal */
+    get [SIGNAL](): Observable<Signal> {
+        return (
+            this._signal ||
+            (this._signal = this.subject().pipe(
+                distinctUntilChanged(),
+                skip(1),
+                mapTo(this)
+            ))
+        )
+    }
+
     value: T
+
     /** @internal */ _subject?: Subject<T>
     /** @internal */ _signal?: Observable<Signal>
     /** @internal */ _subscription?: Subscription | null
@@ -101,17 +118,6 @@ export class Leaf<T> {
         }
         return subject
     }
-    /** @internal */
-    signal(): Observable<Signal> {
-        return (
-            this._signal ||
-            (this._signal = this.subject().pipe(
-                distinctUntilChanged(),
-                skip(1),
-                mapTo(this)
-            ))
-        )
-    }
     subscribe(observable: Observable<T>) {
         const subscription = observable.subscribe(value => {
             const subject = this._subject
@@ -144,11 +150,18 @@ export class Leaf<T> {
 
 export class Twig<T> {
     static create = createTwig
-    static define = defineTwig
+    static define = defineTwig;
 
-    /** @internal */ readonly id = generateSignalID()
+    /** @internal */
+    readonly [ID] = generateSignalID()
+    /** @internal */
+    get [SIGNAL]() {
+        return this._signal || NEVER
+    }
+
     handler?: () => T
     dirty = true
+
     /** @internal */ _value?: T
     /** @internal */ _signals?: Signal[]
     /** @internal */ _running?: boolean
@@ -175,17 +188,16 @@ export class Twig<T> {
         this.dirty && runTwig(this)
         return this._value!
     }
-    /** @internal */
-    signal() {
-        return this._signal || NEVER
-    }
 }
 
 export class Branch {
-    static create = createBranch
+    static create = createBranch;
 
-    /** @internal */ readonly id = generateBranchID()
+    /** @internal */
+    readonly [ID] = generateBranchID()
+
     handler?: (branch: Branch) => void
+
     /** @internal */ _running?: boolean
     /** @internal */ _frozen?: boolean
     /** @internal */ _stopped?: boolean
@@ -380,8 +392,8 @@ function runTwig<T>(twig: Twig<T>) {
 
             const observable = (twig._signal =
                 latestSignals.length === 1
-                    ? getSignal(latestSignals[0])
-                    : merge(...latestSignals.map(getSignal)).pipe(share()))
+                    ? latestSignals[0][SIGNAL]
+                    : merge(...latestSignals.map(x => x[SIGNAL])).pipe(share()))
 
             twig._subscription = observable.subscribe(() => {
                 twig.dirty = true
@@ -433,7 +445,7 @@ function runBranch(branch: Branch) {
                 break Finally
             }
 
-            const observable = merge(...latestSignals.map(getSignal))
+            const observable = merge(...latestSignals.map(x => x[SIGNAL]))
 
             branch._subscription = observable.subscribe(() => {
                 scheduleBranch(branch)
@@ -468,10 +480,10 @@ function runAllScheduledBranches() {
 }
 
 function scheduleBranch(branch: Branch) {
-    const branchID = branch.id
-    const compare = (branch: Branch) => branch.id <= branchID
+    const branchID = branch[ID]
+    const compare = (branch: Branch) => branch[ID] <= branchID
 
-    if (runningBranch && branchID > runningBranch.id) {
+    if (runningBranch && branchID > runningBranch[ID]) {
         const index = binarySearch(runningBranchArray!, compare)
         if (branch !== runningBranchArray![index]) {
             runningBranchArray!.splice(index, 0, branch)
@@ -495,8 +507,8 @@ function scheduleBranch(branch: Branch) {
 }
 
 function unscheduleBranch(branch: Branch) {
-    const branchID = branch.id
-    const compare = (branch: Branch) => branch.id <= branchID
+    const branchID = branch[ID]
+    const compare = (branch: Branch) => branch[ID] <= branchID
 
     const index = binarySearch(scheduledBranchArray, compare)
     if (branch === scheduledBranchArray[index]) {
@@ -512,8 +524,8 @@ function unscheduleBranch(branch: Branch) {
 }
 
 function addSignal(x: { _signals?: Signal[] }, signal: Signal) {
-    const signalID = signal.id
-    const compare = (signal: Signal) => signal.id >= signalID
+    const signalID = signal[ID]
+    const compare = (signal: Signal) => signal[ID] >= signalID
 
     const signals = x._signals!
     const index = binarySearch(signals, compare)
@@ -522,10 +534,6 @@ function addSignal(x: { _signals?: Signal[] }, signal: Signal) {
     }
 
     signals.splice(index, 0, signal)
-}
-
-function getSignal(signal: Signal) {
-    return signal.signal()
 }
 
 function unsubscribeObject(x: { _subscription?: Subscription | null }) {
