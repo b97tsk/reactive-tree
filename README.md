@@ -2,6 +2,9 @@
 
 A simple library for reactive programming.
 
+This library may help you write your view controllers with less pain. But if you
+are working with some kind of framework, you might find nowhere to use it.
+
 Requires [RxJS 6](https://github.com/ReactiveX/RxJS).
 
 ## Installation
@@ -96,7 +99,7 @@ properties inside its `handler` function changes. Things you should know that:
 - the second line of output does not immediately show up, but the gap is too
   small to be noticed.
 
-Branches can be nested with each other.
+Branches can be nested inside each other.
 
 ##### Example: Nesting
 
@@ -195,7 +198,9 @@ corresponds with that twig:
 ### class Leaf
 
 ```typescript
-interface Leaf<T> {
+class Leaf<T> {
+  static create = createLeaf;
+  static define = defineLeaf;
   value: T;
   read(): T;
   write(value: T): void;
@@ -244,10 +249,12 @@ also cancels all those subscriptions.
 ### class Twig
 
 ```typescript
-interface Twig<T> {
+class Twig<T> {
+  static create = createTwig;
+  static define = defineTwig;
   handler?: () => T;
-  readonly value: T;
   dirty: boolean;
+  readonly value: T;
   read(): T;
 }
 ```
@@ -255,6 +262,12 @@ interface Twig<T> {
 #### class Twig: handler
 
 `handler` is a data property, no magic happen when you get or set this property.
+
+#### class Twig: dirty
+
+`dirty` indicates whether the twig should update the cached value.
+
+`dirty` is a data property, no magic happen when you get or set this property.
 
 #### class Twig: value
 
@@ -267,10 +280,6 @@ If `handler` is not set, an exception throws.
 
 Generally, you should consider using `read()` instead of getting this property.
 
-#### class Twig: dirty
-
-`dirty` indicates whether the twig should update the cached value.
-
 #### class Twig: read()
 
 `read()` returns `value`. Additionally, calling `read()` inside a **handler**
@@ -280,7 +289,8 @@ which must be a twig or an unfrozen branch.
 ### class Branch
 
 ```typescript
-interface Branch {
+class Branch {
+  static create = createBranch;
   handler?: (branch: Branch) => void;
   run(): void;
   stop(): void;
