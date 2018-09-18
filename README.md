@@ -61,10 +61,10 @@ leaf.write("kitty");
 console.log(twig.value); // Hello, kitty.
 ```
 
-Now you can see that this line `leaf.write("kitty");` causes the leaf reacts,
-which causes the twig becomes **dirty**, because the twig **reads** the leaf
-inside its `handler` function. Thus, the second `twig.value` now has a different
-value.
+Now you can see that this line `leaf.write("kitty");` causes the leaf to react,
+which causes the twig to become **dirty**, because the twig **reads** the leaf
+inside its `handler` function. As a result, the second `twig.value` now has a
+different value.
 
 ### Branches
 
@@ -178,8 +178,8 @@ Creates a branch with a handler.
 function defineLeaf<T>(obj: any, prop: string, value?: T): Leaf<T>;
 ```
 
-Creates a leaf with a value, also defines a property for an object, which
-corresponds with that leaf:
+Creates a leaf with a value, like `createLeaf()`, but also defines a property
+for an object, which corresponds with that leaf:
 
 - when you get this property, it returns `leaf.read()`;
 - when you set this property to something, it calls `leaf.write(something)`.
@@ -190,8 +190,8 @@ corresponds with that leaf:
 function defineTwig<T>(obj: any, prop: string, handler?: () => T): Twig<T>;
 ```
 
-Creates a twig with a handler, also defines a property for an object, which
-corresponds with that twig:
+Creates a twig with a handler, like `createTwig()`, but also defines a property
+for an object, which corresponds with that twig:
 
 - when you get this property, it returns `twig.read()`.
 
@@ -220,12 +220,12 @@ setting this property.
 #### class Leaf: read()
 
 `read()` returns `value`. Additionally, calling `read()` inside a **handler**
-function causes the leaf is collected by the owner of that **handler** function
-which must be a twig or an unfrozen branch.
+function causes the leaf to be collected by the owner of that **handler**
+function which must be a twig or an unfrozen branch.
 
 #### class Leaf: write()
 
-`write()` sets `value` property to a new value. It causes the leaf reacts if
+`write()` sets `value` property to a new value. It causes the leaf to react if
 this new value differs from the old one.
 
 #### class Leaf: subject()
@@ -276,15 +276,15 @@ class Twig<T> {
 If `dirty` is true, a new value returned by `handler` function will be cached
 and used instead. And then `dirty` is set to false.
 
-If `handler` is not set, an exception throws.
+If `handler` is not set, an error throws.
 
 Generally, you should consider using `read()` instead of getting this property.
 
 #### class Twig: read()
 
 `read()` returns `value`. Additionally, calling `read()` inside a **handler**
-function causes the twig is collected by the owner of that **handler** function
-which must be a twig or an unfrozen branch.
+function causes the twig to be collected by the owner of that **handler**
+function which must be a twig or an unfrozen branch.
 
 ### class Branch
 
@@ -313,7 +313,7 @@ class Branch {
 
 `run()` forces the branch to restart [its procedure](#branches) immediately.
 
-An exception throws if `run()` is called inside the `handler` function.
+An error throws if `run()` is called inside the `handler` function.
 
 #### class Branch: stop()
 
@@ -331,8 +331,8 @@ branch.
 `freeze()` freezes the branch. Subsequent reactive properties will **NOT** be
 collected by the branch.
 
-`freeze()` should be called inside the `handler` function, otherwise an
-exception throws.
+`freeze()` must be called inside the `handler` function, otherwise an error
+throws.
 
 #### class Branch: unfreeze()
 
@@ -342,8 +342,8 @@ properties.
 `unfreeze()` need not be called if there is no subsequent reactive properties
 after.
 
-`unfreeze()` should be called inside the `handler` function, otherwise an
-exception throws.
+`unfreeze()` must be called inside the `handler` function, otherwise an error
+throws.
 
 #### class Branch: schedule()
 
@@ -360,24 +360,24 @@ as possible**.
 removed. This is useful if you need to undo something that is done inside the
 `handler` function.
 
-`addTeardown()` should be called inside the `handler` function, otherwise an
-exception throws.
+`addTeardown()` must be called inside the `handler` function, otherwise an error
+throws.
 
 #### class Branch: setInterval()
 
 `setInterval()` starts a timer. `clearInterval()` is automatically called when
 the branch restarts or stops or is removed.
 
-`setInterval()` should be called inside the `handler` function, otherwise an
-exception throws.
+`setInterval()` must be called inside the `handler` function, otherwise an error
+throws.
 
 #### class Branch: setTimeout()
 
 `setTimeout()` starts a timer. `clearTimeout()` is automatically called when the
 branch restarts or stops or is removed.
 
-`setTimeout()` should be called inside the `handler` function, otherwise an
-exception throws.
+`setTimeout()` must be called inside the `handler` function, otherwise an error
+throws.
 
 ## License
 
