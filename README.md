@@ -230,8 +230,8 @@ this new value differs from the old one.
 
 #### class Leaf: subject()
 
-`subject()` creates an RxJS Subject for the leaf and returns it. Subsequent
-calls return the same one.
+`subject()` creates an RxJS BehaviorSubject for the leaf and returns it.
+Subsequent calls return the same one.
 
 The subject responds to `write()` and `subscribe()`.
 

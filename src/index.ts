@@ -84,7 +84,7 @@ export class Leaf<T> {
 
     value: T
 
-    /** @internal */ _subject?: Subject<T>
+    /** @internal */ _subject?: BehaviorSubject<T>
     /** @internal */ _signal?: Observable<Signal>
     /** @internal */ _subscription?: Subscription | null
     /** @internal */ _subscriptionMany?: Subscription | null
