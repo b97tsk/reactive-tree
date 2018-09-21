@@ -290,33 +290,60 @@ export const schedule: ScheduleObject = (() => {
     return schedule
 })()
 
-let tryCatchErrors = null as any[] | null
+type ArgsType<T> = T extends (...args: infer U) => any ? U : never
+type ReturnType<T> = T extends (...args: any[]) => infer R ? R : never
 
-function tryCatch<T>(errors: any[], fn: (...args: any[]) => T, ...args: any[]) {
-    const backup = tryCatchErrors
+interface TryCatchResult<T> {
+    readonly val: T
+    readonly err: any
+}
+
+const tryCatchErrors = [] as any[]
+const tryCatchResult = {} as any
+let tryCatchTarget = null as any
+let tryCatchRefCount = 0
+
+function tryCatcher() {
     try {
-        tryCatchErrors = errors
-        return fn(...args)
+        tryCatchResult.val = tryCatchTarget.apply(null, arguments)
+        tryCatchResult.err = null
     } catch (e) {
-        errors.push(e)
-        return errors
-    } finally {
-        tryCatchErrors = backup
+        tryCatchErrors.push(e)
+        tryCatchResult.val = null
+        tryCatchResult.err = e
     }
+    return tryCatchResult
+}
+
+function tryCatch<T extends (...args: any[]) => any>(
+    fn: T
+): (...args: ArgsType<T>) => TryCatchResult<ReturnType<T>> {
+    tryCatchTarget = fn
+    return tryCatcher as any
 }
 
 function tryCatchBegin() {
-    return tryCatchErrors || []
+    if (tryCatchRefCount++ > 0) {
+        return
+    }
+    tryCatchErrors.length = 0
 }
 
-function tryCatchFinally(errors: any[], name: string) {
-    if (errors !== tryCatchErrors && errors.length > 0) {
-        throw new Error(
-            `${errors.length} errors occurred during ${name}:\n  ${errors
-                .map((err, i) => `${i + 1}) ${err.toString()}`)
-                .join('\n  ')}`
-        )
+function tryCatchThrow(e: any) {
+    tryCatchErrors.push(e)
+}
+
+function tryCatchFinally(name: string) {
+    if (--tryCatchRefCount > 0 || tryCatchErrors.length === 0) {
+        return
     }
+    const errors = tryCatchErrors
+    const re = /\n/g
+    throw new Error(
+        `${errors.length} errors occurred during ${name}:\n  ${errors
+            .map((err, i) => `${i + 1}) ${err.toString().replace(re, '\n  ')}`)
+            .join('\n  ')}`
+    )
 }
 
 const createCounter = (id: number) => () => ++id
@@ -350,12 +377,12 @@ function removeBranch(branch: Branch) {
 function removeAllBranches(branch: Branch) {
     const branches = branch._branches
     if (branches) {
-        const errors = tryCatchBegin()
+        tryCatchBegin()
         for (const branch of branches) {
-            tryCatch(errors, stopBranch, branch)
+            tryCatch(stopBranch)(branch)
         }
         branches.length = 0
-        tryCatchFinally(errors, 'removeAllBranches')
+        tryCatchFinally('removeAllBranches')
     }
 }
 
@@ -386,8 +413,6 @@ function runTwig<T>(twig: Twig<T>) {
         return
     }
 
-    const errors = tryCatchBegin()
-
     const previousTwig = currentTwig
     const previousBranch = currentBranch
     currentTwig = twig
@@ -399,29 +424,31 @@ function runTwig<T>(twig: Twig<T>) {
     twig._signals = latestSignals
     twig._running = true
 
+    tryCatchBegin()
+
     const { handler } = twig
     if (handler == null) {
-        errors.push(new Error('handler is not set'))
+        tryCatchThrow(new Error('handler is not set'))
     } else {
-        const result = tryCatch(errors, handler)
-        if (result !== errors) {
-            twig._value = result as T
+        const { err, val } = tryCatch(handler)()
+        if (err == null) {
+            twig._value = val
             twig.dirty = false
         }
     }
 
+    twig._running = false
+
+    currentTwig = previousTwig
+    currentBranch = previousBranch
+
     // tslint:disable-next-line:label-position
     Finally: {
-        twig._running = false
-
-        currentTwig = previousTwig
-        currentBranch = previousBranch
-
         if (compareTwoArrays(lastSignals, latestSignals)) {
             break Finally
         }
 
-        tryCatch(errors, unsubscribeObject, twig)
+        tryCatch(unsubscribeObject)(twig)
 
         if (latestSignals.length === 0) {
             twig._signal && (twig._signal = NEVER)
@@ -438,17 +465,13 @@ function runTwig<T>(twig: Twig<T>) {
         })
     }
 
-    tryCatchFinally(errors, 'runTwig')
+    tryCatchFinally('runTwig')
 }
 
 function runBranch(branch: Branch) {
     if (branch._removed) {
         return
     }
-
-    const errors = tryCatchBegin()
-    tryCatch(errors, removeAllBranches, branch)
-    tryCatch(errors, removeAllTeardowns, branch)
 
     const previousBranch = currentBranch
     currentBranch = branch
@@ -461,15 +484,20 @@ function runBranch(branch: Branch) {
     branch._frozen = false
     branch._stopped = false
 
+    tryCatchBegin()
+
+    tryCatch(removeAllBranches)(branch)
+    tryCatch(removeAllTeardowns)(branch)
+
     const { handler } = branch
-    handler && tryCatch(errors, handler, branch)
+    handler && tryCatch(handler)(branch)
+
+    branch._running = false
+
+    currentBranch = previousBranch
 
     // tslint:disable-next-line:label-position
     Finally: {
-        branch._running = false
-
-        currentBranch = previousBranch
-
         if (branch._stopped || branch._removed) {
             break Finally
         }
@@ -478,7 +506,7 @@ function runBranch(branch: Branch) {
             break Finally
         }
 
-        tryCatch(errors, unsubscribeObject, branch)
+        tryCatch(unsubscribeObject)(branch)
 
         if (latestSignals.length === 0) {
             break Finally
@@ -491,32 +519,32 @@ function runBranch(branch: Branch) {
         })
     }
 
-    tryCatchFinally(errors, 'runBranch')
+    tryCatchFinally('runBranch')
 }
 
 function stopBranch(branch: Branch) {
-    const errors = tryCatchBegin()
     const signals = branch._signals
     signals && (signals.length = 0)
-    tryCatch(errors, unsubscribeObject, branch)
+    tryCatchBegin()
     unscheduleBranch(branch)
-    tryCatch(errors, removeAllBranches, branch)
-    tryCatch(errors, removeAllTeardowns, branch)
+    tryCatch(unsubscribeObject)(branch)
+    tryCatch(removeAllBranches)(branch)
+    tryCatch(removeAllTeardowns)(branch)
     branch._stopped = true
-    tryCatchFinally(errors, 'stopBranch')
+    tryCatchFinally('stopBranch')
 }
 
 function runAllScheduledBranches() {
-    const errors = tryCatchBegin()
     runningBranchArray = scheduledBranchArray
     scheduledBranchArray = []
     scheduledBranchArrayScheduled = false
+    tryCatchBegin()
     // tslint:disable-next-line:no-conditional-assignment
     while ((runningBranch = runningBranchArray.pop())) {
-        tryCatch(errors, runBranch, runningBranch)
+        tryCatch(runBranch)(runningBranch)
     }
     runningBranch = runningBranchArray = null
-    tryCatchFinally(errors, 'runAllScheduledBranches')
+    tryCatchFinally('runAllScheduledBranches')
 }
 
 function scheduleBranch(branch: Branch) {
