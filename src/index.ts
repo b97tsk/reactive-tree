@@ -8,6 +8,12 @@ import {
     TeardownLogic,
 } from 'rxjs'
 import { distinctUntilChanged, mapTo, share, skip } from 'rxjs/operators'
+import {
+    tryCatch,
+    tryCatchBegin,
+    tryCatchFinally,
+    tryCatchThrow,
+} from './tryCatch'
 
 export function createLeaf<T>(value: T): Leaf<T> {
     return new Leaf<T>(value)
@@ -289,62 +295,6 @@ export const schedule: ScheduleObject = (() => {
     }
     return schedule
 })()
-
-type ArgsType<T> = T extends (...args: infer U) => any ? U : never
-type ReturnType<T> = T extends (...args: any[]) => infer R ? R : never
-
-interface TryCatchResult<T> {
-    readonly val: T
-    readonly err: any
-}
-
-const tryCatchErrors = [] as any[]
-const tryCatchResult = {} as any
-let tryCatchTarget = null as any
-let tryCatchRefCount = 0
-
-function tryCatcher() {
-    try {
-        tryCatchResult.val = tryCatchTarget.apply(null, arguments)
-        tryCatchResult.err = null
-    } catch (e) {
-        tryCatchErrors.push(e)
-        tryCatchResult.val = null
-        tryCatchResult.err = e
-    }
-    return tryCatchResult
-}
-
-function tryCatch<T extends (...args: any[]) => any>(
-    fn: T
-): (...args: ArgsType<T>) => TryCatchResult<ReturnType<T>> {
-    tryCatchTarget = fn
-    return tryCatcher as any
-}
-
-function tryCatchBegin() {
-    if (tryCatchRefCount++ > 0) {
-        return
-    }
-    tryCatchErrors.length = 0
-}
-
-function tryCatchThrow(e: any) {
-    tryCatchErrors.push(e)
-}
-
-function tryCatchFinally(name: string) {
-    if (--tryCatchRefCount > 0 || tryCatchErrors.length === 0) {
-        return
-    }
-    const errors = tryCatchErrors
-    const re = /\n/g
-    throw new Error(
-        `${errors.length} errors occurred during ${name}:\n  ${errors
-            .map((err, i) => `${i + 1}) ${err.toString().replace(re, '\n  ')}`)
-            .join('\n  ')}`
-    )
-}
 
 const createCounter = (id: number) => () => ++id
 const generateSignalID = createCounter(0)
