@@ -2,7 +2,8 @@ import { expect } from 'chai'
 import { describe, it } from 'mocha'
 import { of } from 'rxjs'
 import { delay } from 'rxjs/operators'
-import { createBranch, createLeaf, createTwig, schedule } from '.'
+import { createBranch, createLeaf, createTwig } from '.'
+import { schedule } from './schedule'
 
 describe('Leaf', () => {
     it('createLeaf() with a value', () => {
