@@ -105,6 +105,15 @@ describe('Twig', () => {
         leaf_b.write(30)
         expect(twig.value).to.equal(42)
     })
+    it('notify() a change', () => {
+        const twig_a = createTwig(() => 42)
+        const twig_b = createTwig(() => twig_a.read())
+        expect(twig_b.dirty).to.be.true
+        expect(twig_b.value).to.equal(42)
+        expect(twig_b.dirty).to.be.false
+        twig_a.notify()
+        expect(twig_b.dirty).to.be.true
+    })
 })
 describe('Branch', () => {
     it('createBranch() with a handler', () => {

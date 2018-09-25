@@ -204,7 +204,7 @@ class Leaf<T> {
   value: T;
   read(): T;
   write(value: T): void;
-  subject(): Subject<T>;
+  subject(): BehaviorSubject<T>;
   subscribe(observable: Observable<T>): Subscription;
   unsubscribe(): void;
 }
@@ -256,6 +256,7 @@ class Twig<T> {
   dirty: boolean;
   readonly value: T;
   read(): T;
+  notify(): void;
 }
 ```
 
@@ -285,6 +286,10 @@ Generally, you should consider using `read()` instead of getting this property.
 `read()` returns `value`. Additionally, calling `read()` inside a **handler**
 function causes the twig to be collected by the owner of that **handler**
 function which must be a twig or an unfrozen branch.
+
+#### class Twig: notify()
+
+`notify()` forces the twig to react.
 
 ### class Branch
 

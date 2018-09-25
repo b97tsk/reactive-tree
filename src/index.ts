@@ -1,13 +1,18 @@
 import {
     merge,
     BehaviorSubject,
-    NEVER,
     Observable,
     Subject,
     Subscription,
     TeardownLogic,
 } from 'rxjs'
-import { distinctUntilChanged, mapTo, share, skip } from 'rxjs/operators'
+import {
+    distinctUntilChanged,
+    mapTo,
+    multicast,
+    refCount,
+    skip,
+} from 'rxjs/operators'
 import { schedule } from './schedule'
 import {
     tryCatch,
@@ -163,16 +168,16 @@ export class Twig<T> {
     readonly [ID] = generateSignalID()
     /** @internal */
     get [SIGNAL]() {
-        return this._signal || NEVER
+        return this._subject || (this._subject = new Subject())
     }
 
-    handler?: () => T
     dirty = true
+    handler?: () => T
 
     /** @internal */ _value?: T
     /** @internal */ _signals?: Signal[]
     /** @internal */ _running?: boolean
-    /** @internal */ _signal?: Observable<Signal>
+    /** @internal */ _subject?: Subject<Signal>
     /** @internal */ _subscription?: Subscription | null
 
     /** @internal */
@@ -194,6 +199,10 @@ export class Twig<T> {
         }
         this.dirty && runTwig(this)
         return this._value!
+    }
+    notify() {
+        const subject = this._subject
+        subject && subject.next(this)
     }
 }
 
@@ -381,14 +390,13 @@ function runTwig<T>(twig: Twig<T>) {
         tryCatch(unsubscribeObject)(twig)
 
         if (latestSignals.length === 0) {
-            twig._signal && (twig._signal = NEVER)
             break Finally
         }
 
-        const observable = (twig._signal =
-            latestSignals.length === 1
-                ? latestSignals[0][SIGNAL]
-                : merge(...latestSignals.map(x => x[SIGNAL])).pipe(share()))
+        const observable = merge(...latestSignals.map(x => x[SIGNAL])).pipe(
+            multicast(() => twig[SIGNAL]),
+            refCount()
+        )
 
         twig._subscription = observable.subscribe(() => {
             twig.dirty = true
