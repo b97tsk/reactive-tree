@@ -11,9 +11,9 @@ const result = {} as any
 let target = null as any
 let refCount = 0
 
-function tryCatcher() {
+function tryCatcher(this: any) {
     try {
-        result.val = target.apply(null, arguments)
+        result.val = target.apply(this, arguments)
         result.err = null
     } catch (e) {
         errors.push(e)
