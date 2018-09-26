@@ -1,9 +1,11 @@
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
-import { of } from 'rxjs'
-import { delay } from 'rxjs/operators'
+import { of, queueScheduler } from 'rxjs'
+import { subscribeOn } from 'rxjs/operators'
 import { createBranch, createLeaf, createTwig } from '.'
 import { schedule } from './schedule'
+
+schedule.replace(cb => queueScheduler.schedule(cb))
 
 describe('Leaf', () => {
     it('createLeaf() with a value', () => {
@@ -39,32 +41,38 @@ describe('Leaf', () => {
         expect(leaf.value).to.equal(42)
     })
     it('subscribe() two observables', done => {
-        const leaf = createLeaf(0)
-        leaf.subscribe(of(42))
-        leaf.subscribe(of(NaN).pipe(delay(1)))
-        expect(leaf.value).to.equal(42)
-        setTimeout(() => {
-            expect(leaf.value).to.be.NaN
-            done()
-        }, 2)
+        schedule(() => {
+            const leaf = createLeaf(0)
+            leaf.subscribe(of(42))
+            leaf.subscribe(of(NaN).pipe(subscribeOn(queueScheduler)))
+            expect(leaf.value).to.equal(42)
+            schedule(() => {
+                expect(leaf.value).to.be.NaN
+                done()
+            })
+        })
     })
     it('write() cancels subscribe()', done => {
-        const leaf = createLeaf(0)
-        leaf.subscribe(of(NaN).pipe(delay(1)))
-        leaf.write(42)
-        setTimeout(() => {
-            expect(leaf.value).to.equal(42)
-            done()
-        }, 2)
+        schedule(() => {
+            const leaf = createLeaf(0)
+            leaf.subscribe(of(NaN).pipe(subscribeOn(queueScheduler)))
+            leaf.write(42)
+            schedule(() => {
+                expect(leaf.value).to.equal(42)
+                done()
+            })
+        })
     })
     it('unsubscribe() cancels subscribe()', done => {
-        const leaf = createLeaf(42)
-        leaf.subscribe(of(NaN).pipe(delay(1)))
-        leaf.unsubscribe()
-        setTimeout(() => {
-            expect(leaf.value).to.equal(42)
-            done()
-        }, 2)
+        schedule(() => {
+            const leaf = createLeaf(42)
+            leaf.subscribe(of(NaN).pipe(subscribeOn(queueScheduler)))
+            leaf.unsubscribe()
+            schedule(() => {
+                expect(leaf.value).to.equal(42)
+                done()
+            })
+        })
     })
 })
 describe('Twig', () => {
@@ -143,139 +151,153 @@ describe('Branch', () => {
         expect(value).to.equal(42)
     })
     it('use leaves inside handler', done => {
-        const leaf_a = createLeaf(0)
-        const leaf_b = createLeaf(0)
-        let value = NaN
-        createBranch(() => {
-            value = leaf_a.read() + leaf_b.read()
-        })
-        expect(value).to.equal(0)
-        leaf_a.write(12)
-        expect(value).to.equal(0)
         schedule(() => {
-            expect(value).to.equal(12)
-            leaf_b.write(30)
-            expect(value).to.equal(12)
+            const leaf_a = createLeaf(0)
+            const leaf_b = createLeaf(0)
+            let value = NaN
+            createBranch(() => {
+                value = leaf_a.read() + leaf_b.read()
+            })
+            expect(value).to.equal(0)
+            leaf_a.write(12)
+            expect(value).to.equal(0)
             schedule(() => {
-                expect(value).to.equal(42)
-                done()
+                expect(value).to.equal(12)
+                leaf_b.write(30)
+                expect(value).to.equal(12)
+                schedule(() => {
+                    expect(value).to.equal(42)
+                    done()
+                })
             })
         })
     })
     it('use twigs inside handler', done => {
-        const leaf_a = createLeaf(0)
-        const leaf_b = createLeaf(0)
-        const twig_a = createTwig(() => leaf_a.read() + leaf_b.read())
-        const twig_b = createTwig(() => leaf_a.read() - leaf_b.read())
-        let value = NaN
-        createBranch(() => {
-            value = twig_a.read() * twig_b.read()
-        })
-        expect(value).to.equal(0)
-        leaf_a.write(8)
-        leaf_b.write(5)
-        expect(value).to.equal(0)
         schedule(() => {
-            expect(value).to.equal(39)
-            leaf_a.write(9)
-            leaf_b.write(6)
-            expect(value).to.equal(39)
+            const leaf_a = createLeaf(0)
+            const leaf_b = createLeaf(0)
+            const twig_a = createTwig(() => leaf_a.read() + leaf_b.read())
+            const twig_b = createTwig(() => leaf_a.read() - leaf_b.read())
+            let value = NaN
+            createBranch(() => {
+                value = twig_a.read() * twig_b.read()
+            })
+            expect(value).to.equal(0)
+            leaf_a.write(8)
+            leaf_b.write(5)
+            expect(value).to.equal(0)
             schedule(() => {
-                expect(value).to.equal(45)
-                done()
+                expect(value).to.equal(39)
+                leaf_a.write(9)
+                leaf_b.write(6)
+                expect(value).to.equal(39)
+                schedule(() => {
+                    expect(value).to.equal(45)
+                    done()
+                })
             })
         })
     })
     it('use branches inside handler (nesting)', done => {
-        const leaf_a = createLeaf(3)
-        const leaf_b = createLeaf(5)
-        let value = 0
-        createBranch(() => {
-            value += leaf_a.read()
-            createBranch(() => {
-                value += leaf_b.read()
-            })
-        })
-        expect(value).to.equal(3 + 5) // 8
-        leaf_a.write(7)
         schedule(() => {
-            expect(value).to.equal(8 + 7 + 5) // 20
-            leaf_b.write(11)
+            const leaf_a = createLeaf(3)
+            const leaf_b = createLeaf(5)
+            let value = 0
+            createBranch(() => {
+                value += leaf_a.read()
+                createBranch(() => {
+                    value += leaf_b.read()
+                })
+            })
+            expect(value).to.equal(3 + 5) // 8
+            leaf_a.write(7)
             schedule(() => {
-                expect(value).to.equal(20 + 11) // 31
-                done()
+                expect(value).to.equal(8 + 7 + 5) // 20
+                leaf_b.write(11)
+                schedule(() => {
+                    expect(value).to.equal(20 + 11) // 31
+                    done()
+                })
             })
         })
     })
     it('stop() and run() again', done => {
-        const leaf = createLeaf(0)
-        let value = NaN
-        const branch = createBranch(() => {
-            value = leaf.read()
-        })
-        expect(value).to.equal(0)
-        branch.stop()
-        leaf.write(42)
-        expect(value).to.equal(0)
         schedule(() => {
+            const leaf = createLeaf(0)
+            let value = NaN
+            const branch = createBranch(() => {
+                value = leaf.read()
+            })
             expect(value).to.equal(0)
-            branch.run()
-            expect(value).to.equal(42)
-            leaf.write(NaN)
-            expect(value).to.equal(42)
+            branch.stop()
+            leaf.write(42)
+            expect(value).to.equal(0)
             schedule(() => {
-                expect(value).to.be.NaN
-                done()
+                expect(value).to.equal(0)
+                branch.run()
+                expect(value).to.equal(42)
+                leaf.write(NaN)
+                expect(value).to.equal(42)
+                schedule(() => {
+                    expect(value).to.be.NaN
+                    done()
+                })
             })
         })
     })
     it('freeze() and unfreeze()', done => {
-        const leaf_a = createLeaf(0)
-        const leaf_b = createLeaf(0)
-        let value = NaN
-        createBranch(branch => {
-            branch.freeze()
-            const a = leaf_a.read()
-            branch.unfreeze()
-            const b = leaf_b.read()
-            value = a + b
-        })
-        expect(value).to.equal(0)
-        leaf_a.write(12)
-        expect(value).to.equal(0)
         schedule(() => {
+            const leaf_a = createLeaf(0)
+            const leaf_b = createLeaf(0)
+            let value = NaN
+            createBranch(branch => {
+                branch.freeze()
+                const a = leaf_a.read()
+                branch.unfreeze()
+                const b = leaf_b.read()
+                value = a + b
+            })
             expect(value).to.equal(0)
-            leaf_b.write(30)
+            leaf_a.write(12)
             expect(value).to.equal(0)
+            schedule(() => {
+                expect(value).to.equal(0)
+                leaf_b.write(30)
+                expect(value).to.equal(0)
+                schedule(() => {
+                    expect(value).to.equal(42)
+                    done()
+                })
+            })
+        })
+    })
+    it('schedule() a branch manually', done => {
+        schedule(() => {
+            let value = 40
+            const branch = createBranch(() => {
+                ++value
+            })
+            branch.schedule()
+            expect(value).to.equal(41)
             schedule(() => {
                 expect(value).to.equal(42)
                 done()
             })
         })
     })
-    it('schedule() a branch manually', done => {
-        let value = 40
-        const branch = createBranch(() => {
-            ++value
-        })
-        branch.schedule()
-        expect(value).to.equal(41)
-        schedule(() => {
-            expect(value).to.equal(42)
-            done()
-        })
-    })
     it('schedule() and unschedule()', done => {
-        let value = 40
-        const branch = createBranch(() => {
-            value += 2
-        })
-        branch.schedule()
-        expect(value).to.equal(42)
-        branch.unschedule()
         schedule(() => {
+            let value = 40
+            const branch = createBranch(() => {
+                value += 2
+            })
+            branch.schedule()
             expect(value).to.equal(42)
-            done()
+            branch.unschedule()
+            schedule(() => {
+                expect(value).to.equal(42)
+                done()
+            })
         })
     })
     it('addTeardown()', () => {
