@@ -116,9 +116,13 @@ export class Leaf<T> {
         return this.value
     }
     write(value: T) {
-        this.unsubscribe()
+        tryCatchBegin()
+        tryCatch(this.unsubscribe).call(this)
         const subject = this._subject
-        subject ? subject.next(value) : (this.value = value)
+        subject
+            ? tryCatch(subject.next).call(subject, value)
+            : (this.value = value)
+        tryCatchFinally('Leaf.write')
     }
     subject() {
         let subject = this._subject
@@ -153,10 +157,9 @@ export class Leaf<T> {
         const subscriptionMany = this._subscriptionMany
         if (subscriptionMany) {
             this._subscription = this._subscriptionMany = null
-            subscriptionMany.unsubscribe()
-            return
+            return subscriptionMany.unsubscribe()
         }
-        unsubscribeObject(this)
+        return unsubscribeObject(this)
     }
 }
 
@@ -248,13 +251,13 @@ export class Branch {
         if (this._running) {
             throw new Error('branch is running')
         }
-        runBranch(this)
+        return runBranch(this)
     }
     stop() {
-        stopBranch(this)
+        return stopBranch(this)
     }
     remove() {
-        removeBranch(this)
+        return removeBranch(this)
     }
     freeze() {
         this._frozen = true
@@ -263,25 +266,27 @@ export class Branch {
         this._frozen = false
     }
     schedule() {
-        this._removed || scheduleBranch(this)
+        if (this._removed) {
+            return
+        }
+        return scheduleBranch(this)
     }
     unschedule() {
-        this._removed || unscheduleBranch(this)
+        if (this._removed) {
+            return
+        }
+        return unscheduleBranch(this)
     }
     addTeardown(teardown: TeardownLogic) {
-        addTeardown(this, teardown)
+        return addTeardown(this, teardown)
     }
     setInterval(callback: (...args: any[]) => void, interval: number) {
         const id = setInterval(callback, interval)
-        addTeardown(this, () => {
-            clearInterval(id)
-        })
+        return addTeardown(this, () => clearInterval(id))
     }
     setTimeout(callback: (...args: any[]) => void, timeout: number) {
         const id = setTimeout(callback, timeout)
-        addTeardown(this, () => {
-            clearTimeout(id)
-        })
+        return addTeardown(this, () => clearTimeout(id))
     }
 }
 
@@ -310,7 +315,7 @@ function removeBranch(branch: Branch) {
         branch._parent = null
     }
     branch._removed = true
-    stopBranch(branch)
+    return stopBranch(branch)
 }
 
 function removeAllBranches(branch: Branch) {
@@ -333,10 +338,11 @@ function addTeardown(branch: Branch, teardown: TeardownLogic) {
             subscription.unsubscribe()
         }
     }
-    subscription.add(teardown)
+    subscription = subscription.add(teardown)
     if (!branch._running) {
         throw new Error('branch is not running')
     }
+    return subscription
 }
 
 function removeAllTeardowns(branch: Branch) {
@@ -452,9 +458,9 @@ function runBranch(branch: Branch) {
 
         const observable = merge(...latestSignals.map(x => x[SIGNAL]))
 
-        branch._subscription = observable.subscribe(() => {
+        branch._subscription = observable.subscribe(() =>
             scheduleBranch(branch)
-        })
+        )
     }
 
     tryCatchFinally('runBranch')
