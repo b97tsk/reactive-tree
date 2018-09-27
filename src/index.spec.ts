@@ -3,7 +3,7 @@ import { describe, it } from 'mocha'
 import { of, queueScheduler } from 'rxjs'
 import { subscribeOn } from 'rxjs/operators'
 import { createBranch, createLeaf, createTwig } from '.'
-import { schedule } from './schedule'
+import { schedule } from './util/schedule'
 
 schedule.replace(cb => queueScheduler.schedule(cb))
 

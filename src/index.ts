@@ -13,13 +13,13 @@ import {
     refCount,
     skip,
 } from 'rxjs/operators'
-import { schedule } from './schedule'
+import { schedule } from './util/schedule'
 import {
     tryCatch,
     tryCatchBegin,
     tryCatchFinally,
     tryCatchThrow,
-} from './tryCatch'
+} from './util/tryCatch'
 
 export function createLeaf<T>(value: T): Leaf<T> {
     return new Leaf<T>(value)

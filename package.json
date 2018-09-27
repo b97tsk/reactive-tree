@@ -5,13 +5,13 @@
   "main": "index.js",
   "types": "index.d.ts",
   "files": [
-    "*.d.ts",
-    "*.js",
-    "*.js.map"
+    "**/*.d.ts",
+    "**/*.js",
+    "**/*.js.map"
   ],
   "scripts": {
     "prepare": "npx tsc",
-    "test": "npx mocha -r ts-node/register ./src/*.spec.ts"
+    "test": "npx mocha -r ts-node/register ./src/**/*.spec.ts"
   },
   "repository": {
     "type": "git",
