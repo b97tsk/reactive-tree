@@ -122,7 +122,7 @@ export class Leaf<T> {
         subject
             ? tryCatch(subject.next).call(subject, value)
             : (this.value = value)
-        tryCatchFinally('Leaf.write')
+        tryCatchFinally('Leaf.write()')
     }
     subject() {
         let subject = this._subject
@@ -326,7 +326,7 @@ function removeAllBranches(branch: Branch) {
             tryCatch(stopBranch)(branch)
         }
         branches.length = 0
-        tryCatchFinally('removeAllBranches')
+        tryCatchFinally('removeAllBranches()')
     }
 }
 
@@ -409,7 +409,7 @@ function runTwig<T>(twig: Twig<T>) {
         })
     }
 
-    tryCatchFinally('runTwig')
+    tryCatchFinally('runTwig()')
 }
 
 function runBranch(branch: Branch) {
@@ -463,19 +463,19 @@ function runBranch(branch: Branch) {
         )
     }
 
-    tryCatchFinally('runBranch')
+    tryCatchFinally('runBranch()')
 }
 
 function stopBranch(branch: Branch) {
     const signals = branch._signals
     signals && (signals.length = 0)
     tryCatchBegin()
-    unscheduleBranch(branch)
+    tryCatch(unscheduleBranch)(branch)
     tryCatch(unsubscribeObject)(branch)
     tryCatch(removeAllBranches)(branch)
     tryCatch(removeAllTeardowns)(branch)
     branch._stopped = true
-    tryCatchFinally('stopBranch')
+    tryCatchFinally('stopBranch()')
 }
 
 function runAllScheduledBranches() {
@@ -488,7 +488,7 @@ function runAllScheduledBranches() {
         tryCatch(runBranch)(runningBranch)
     }
     runningBranch = runningBranchArray = null
-    tryCatchFinally('runAllScheduledBranches')
+    tryCatchFinally('runAllScheduledBranches()')
 }
 
 function scheduleBranch(branch: Branch) {
