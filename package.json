@@ -1,6 +1,6 @@
 {
   "name": "reactive-tree",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "A simple library for reactive programming",
   "main": "index.js",
   "types": "index.d.ts",
