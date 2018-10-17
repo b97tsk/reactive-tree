@@ -13,7 +13,6 @@ import {
     refCount,
     skip,
 } from 'rxjs/operators'
-import { schedule } from './util/schedule'
 import {
     tryCatch,
     tryCatchBegin,
@@ -29,8 +28,11 @@ export function createTwig<T>(handler?: () => T): Twig<T> {
     return new Twig<T>(handler)
 }
 
-export function createBranch(handler?: (branch: Branch) => void): Branch {
-    return new Branch(handler)
+export function createBranch(
+    handler?: (branch: Branch) => void,
+    scheduler?: Scheduler
+): Branch {
+    return new Branch(handler, scheduler)
 }
 
 export function defineLeaf<T>(
@@ -216,6 +218,7 @@ export class Branch {
     readonly [ID] = generateBranchID()
 
     handler?: (branch: Branch) => void
+    scheduler?: Scheduler
 
     /** @internal */ _running?: boolean
     /** @internal */ _frozen?: boolean
@@ -228,7 +231,7 @@ export class Branch {
     /** @internal */ _teardownSubscription?: Subscription | null
 
     /** @internal */
-    constructor(handler?: (branch: Branch) => void) {
+    constructor(handler?: (branch: Branch) => void, scheduler?: Scheduler) {
         if (currentTwig) {
             throw new Error('creating branches on a twig is forbidden')
         }
@@ -237,8 +240,10 @@ export class Branch {
             const branches = parent._branches || (parent._branches = [])
             branches.push(this)
             this._parent = parent
+            scheduler || (scheduler = parent.scheduler)
         }
         this.handler = handler
+        scheduler && (this.scheduler = scheduler)
         handler && runBranch(this)
     }
 
@@ -290,16 +295,84 @@ export class Branch {
     }
 }
 
+export type ScheduleFunc = (callback: (...args: any[]) => void) => void
+
+export function createScheduler(schedule?: ScheduleFunc): Scheduler {
+    return new Scheduler(schedule)
+}
+
+export class Scheduler {
+    static create = createScheduler
+    static default = new Scheduler()
+
+    /** @internal */ _scheduledBranchArray = [] as Branch[]
+    /** @internal */ _scheduledBranchArrayScheduled = false
+    /** @internal */ _runningBranchArray = null as Branch[] | null
+    /** @internal */ _runningBranch = null as Branch | null | undefined
+
+    /** @internal */
+    constructor(schedule?: ScheduleFunc) {
+        schedule && (this.schedule = schedule)
+    }
+
+    schedule(callback: (...args: any[]) => void) {
+        setTimeout(callback, 0)
+    }
+    scheduleBranch(branch: Branch) {
+        const branchID = branch[ID]
+        const compare = (branch: Branch) => branch[ID] <= branchID
+
+        const runningBranch = this._runningBranch
+        if (runningBranch && branchID > runningBranch[ID]) {
+            const runningBranchArray = this._runningBranchArray!
+            const index = binarySearch(runningBranchArray, compare)
+            if (branch !== runningBranchArray[index]) {
+                runningBranchArray.splice(index, 0, branch)
+            }
+            return
+        }
+
+        const scheduledBranchArray = this._scheduledBranchArray
+        const index = binarySearch(scheduledBranchArray, compare)
+        if (branch === scheduledBranchArray[index]) {
+            return
+        }
+
+        scheduledBranchArray.splice(index, 0, branch)
+
+        if (this._scheduledBranchArrayScheduled) {
+            return
+        }
+
+        this.schedule(runAllScheduledBranches.bind(this))
+        this._scheduledBranchArrayScheduled = true
+    }
+    unscheduleBranch(branch: Branch) {
+        const branchID = branch[ID]
+        const compare = (branch: Branch) => branch[ID] <= branchID
+
+        const scheduledBranchArray = this._scheduledBranchArray
+        const index = binarySearch(scheduledBranchArray, compare)
+        if (branch === scheduledBranchArray[index]) {
+            scheduledBranchArray.splice(index, 1)
+        }
+
+        const runningBranchArray = this._runningBranchArray
+        if (runningBranchArray) {
+            const index = binarySearch(runningBranchArray, compare)
+            if (branch === runningBranchArray[index]) {
+                runningBranchArray.splice(index, 1)
+            }
+        }
+    }
+}
+
 const createCounter = (id: number) => () => ++id
 const generateSignalID = createCounter(0)
 const generateBranchID = createCounter(0)
 
 let currentTwig = null as Twig<any> | null
 let currentBranch = null as Branch | null
-let scheduledBranchArray = [] as Branch[]
-let scheduledBranchArrayScheduled = false
-let runningBranchArray = null as Branch[] | null
-let runningBranch = null as Branch | null | undefined
 
 function removeBranch(branch: Branch) {
     if (branch._removed) {
@@ -478,61 +551,26 @@ function stopBranch(branch: Branch) {
     tryCatchFinally('stopBranch()')
 }
 
-function runAllScheduledBranches() {
-    runningBranchArray = scheduledBranchArray
-    scheduledBranchArray = []
-    scheduledBranchArrayScheduled = false
+function runAllScheduledBranches(this: Scheduler) {
+    const runningBranchArray = (this._runningBranchArray = this._scheduledBranchArray)
+    let runningBranch = null as typeof this._runningBranch
+    this._scheduledBranchArray = []
+    this._scheduledBranchArrayScheduled = false
     tryCatchBegin()
     // tslint:disable-next-line:no-conditional-assignment
-    while ((runningBranch = runningBranchArray.pop())) {
+    while ((runningBranch = this._runningBranch = runningBranchArray.pop())) {
         tryCatch(runBranch)(runningBranch)
     }
-    runningBranch = runningBranchArray = null
+    this._runningBranch = this._runningBranchArray = null
     tryCatchFinally('runAllScheduledBranches()')
 }
 
 function scheduleBranch(branch: Branch) {
-    const branchID = branch[ID]
-    const compare = (branch: Branch) => branch[ID] <= branchID
-
-    if (runningBranch && branchID > runningBranch[ID]) {
-        const index = binarySearch(runningBranchArray!, compare)
-        if (branch !== runningBranchArray![index]) {
-            runningBranchArray!.splice(index, 0, branch)
-        }
-        return
-    }
-
-    const index = binarySearch(scheduledBranchArray, compare)
-    if (branch === scheduledBranchArray[index]) {
-        return
-    }
-
-    scheduledBranchArray.splice(index, 0, branch)
-
-    if (scheduledBranchArrayScheduled) {
-        return
-    }
-
-    schedule(runAllScheduledBranches)
-    scheduledBranchArrayScheduled = true
+    return (branch.scheduler || Scheduler.default).scheduleBranch(branch)
 }
 
 function unscheduleBranch(branch: Branch) {
-    const branchID = branch[ID]
-    const compare = (branch: Branch) => branch[ID] <= branchID
-
-    const index = binarySearch(scheduledBranchArray, compare)
-    if (branch === scheduledBranchArray[index]) {
-        scheduledBranchArray.splice(index, 1)
-    }
-
-    if (runningBranchArray) {
-        const index = binarySearch(runningBranchArray, compare)
-        if (branch === runningBranchArray[index]) {
-            runningBranchArray.splice(index, 1)
-        }
-    }
+    return (branch.scheduler || Scheduler.default).unscheduleBranch(branch)
 }
 
 function addSignal(x: { _signals?: Signal[] }, signal: Signal) {

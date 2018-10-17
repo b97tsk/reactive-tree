@@ -2,10 +2,11 @@ import { expect } from 'chai'
 import { describe, it } from 'mocha'
 import { of, queueScheduler } from 'rxjs'
 import { subscribeOn } from 'rxjs/operators'
-import { createBranch, createLeaf, createTwig } from '.'
-import { schedule } from './util/schedule'
+import { createBranch, createLeaf, createTwig, Scheduler } from '.'
 
-schedule.replace(cb => queueScheduler.schedule(cb))
+const schedule = (callback: (...args: any[]) => void) =>
+    queueScheduler.schedule(callback)
+Scheduler.default.schedule = schedule
 
 describe('Leaf', () => {
     it('createLeaf() with a value', () => {
