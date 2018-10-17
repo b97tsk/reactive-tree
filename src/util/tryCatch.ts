@@ -12,6 +12,7 @@ let target = null as any
 let refCount = 0
 
 function tryCatcher(this: any) {
+    const rc = refCount
     try {
         result.val = target.apply(this, arguments)
         result.err = null
@@ -20,6 +21,7 @@ function tryCatcher(this: any) {
         result.val = null
         result.err = e
     }
+    refCount = rc
     return result
 }
 
@@ -44,6 +46,9 @@ export function tryCatchThrow(e: any) {
 export function tryCatchFinally(name: string) {
     if (--refCount > 0 || errors.length === 0) {
         return
+    }
+    if (errors.length === 1) {
+        throw errors[0]
     }
     const re = /\n/g
     throw new Error(
