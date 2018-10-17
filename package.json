@@ -5,12 +5,16 @@
   "main": "index.js",
   "types": "index.d.ts",
   "files": [
-    "**/*.d.ts",
-    "**/*.js",
-    "**/*.js.map"
+    "util/**/*.d.ts",
+    "util/**/*.js",
+    "util/**/*.js.map",
+    "index.d.ts",
+    "index.js",
+    "index.js.map"
   ],
   "scripts": {
     "prepare": "npx tsc",
+    "rollup": "npx tsc --module es2015 --moduleResolution node && npx rollup -c",
     "test": "npx mocha -r ts-node/register ./src/**/*.spec.ts"
   },
   "repository": {
@@ -37,6 +41,7 @@
     "@types/node": "^10.9.4",
     "chai": "^4.1.2",
     "mocha": "^5.2.0",
+    "rollup": "^0.66.6",
     "ts-node": "^7.0.1",
     "typescript": "^3.0.3"
   }
