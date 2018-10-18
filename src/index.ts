@@ -305,16 +305,31 @@ export class Scheduler {
     static create = createScheduler
     static default = new Scheduler()
 
-    /** @internal */ _scheduledBranchArray = [] as Branch[]
-    /** @internal */ _scheduledBranchArrayScheduled = false
-    /** @internal */ _runningBranchArray = null as Branch[] | null
-    /** @internal */ _runningBranch = null as Branch | null | undefined
+    /** @internal */ _scheduled = false
+    /** @internal */ _scheduledBranches = [] as Branch[]
+    /** @internal */ _runningBranches?: Branch[] | null
+    /** @internal */ _runningBranch?: Branch | null
 
     /** @internal */
     constructor(schedule?: ScheduleFunc) {
         schedule && (this.schedule = schedule)
     }
 
+    flush() {
+        const runningBranches = this._scheduledBranches
+        this._scheduled = false
+        this._scheduledBranches = []
+        this._runningBranches = runningBranches
+        tryCatchBegin()
+        let runningBranch: Branch | undefined
+        // tslint:disable-next-line:no-conditional-assignment
+        while ((runningBranch = runningBranches.pop())) {
+            this._runningBranch = runningBranch
+            tryCatch(runBranch)(runningBranch)
+        }
+        this._runningBranch = this._runningBranches = null
+        tryCatchFinally('Scheduler.flush()')
+    }
     schedule(callback: (...args: any[]) => void) {
         setTimeout(callback, 0)
     }
@@ -324,44 +339,44 @@ export class Scheduler {
 
         const runningBranch = this._runningBranch
         if (runningBranch && branchID > runningBranch[ID]) {
-            const runningBranchArray = this._runningBranchArray!
-            const index = binarySearch(runningBranchArray, compare)
-            if (branch !== runningBranchArray[index]) {
-                runningBranchArray.splice(index, 0, branch)
+            const runningBranches = this._runningBranches!
+            const index = binarySearch(runningBranches, compare)
+            if (branch !== runningBranches[index]) {
+                runningBranches.splice(index, 0, branch)
             }
             return
         }
 
-        const scheduledBranchArray = this._scheduledBranchArray
-        const index = binarySearch(scheduledBranchArray, compare)
-        if (branch === scheduledBranchArray[index]) {
+        const scheduledBranches = this._scheduledBranches
+        const index = binarySearch(scheduledBranches, compare)
+        if (branch === scheduledBranches[index]) {
             return
         }
 
-        scheduledBranchArray.splice(index, 0, branch)
+        scheduledBranches.splice(index, 0, branch)
 
-        if (this._scheduledBranchArrayScheduled) {
+        if (this._scheduled) {
             return
         }
 
-        this.schedule(runAllScheduledBranches.bind(this))
-        this._scheduledBranchArrayScheduled = true
+        this._scheduled = true
+        this.schedule(this.flush.bind(this))
     }
     unscheduleBranch(branch: Branch) {
         const branchID = branch[ID]
         const compare = (branch: Branch) => branch[ID] <= branchID
 
-        const scheduledBranchArray = this._scheduledBranchArray
-        const index = binarySearch(scheduledBranchArray, compare)
-        if (branch === scheduledBranchArray[index]) {
-            scheduledBranchArray.splice(index, 1)
+        const scheduledBranches = this._scheduledBranches
+        const index = binarySearch(scheduledBranches, compare)
+        if (branch === scheduledBranches[index]) {
+            scheduledBranches.splice(index, 1)
         }
 
-        const runningBranchArray = this._runningBranchArray
-        if (runningBranchArray) {
-            const index = binarySearch(runningBranchArray, compare)
-            if (branch === runningBranchArray[index]) {
-                runningBranchArray.splice(index, 1)
+        const runningBranches = this._runningBranches
+        if (runningBranches) {
+            const index = binarySearch(runningBranches, compare)
+            if (branch === runningBranches[index]) {
+                runningBranches.splice(index, 1)
             }
         }
     }
@@ -549,20 +564,6 @@ function stopBranch(branch: Branch) {
     tryCatch(removeAllTeardowns)(branch)
     branch._stopped = true
     tryCatchFinally('stopBranch()')
-}
-
-function runAllScheduledBranches(this: Scheduler) {
-    const runningBranchArray = (this._runningBranchArray = this._scheduledBranchArray)
-    let runningBranch = null as typeof this._runningBranch
-    this._scheduledBranchArray = []
-    this._scheduledBranchArrayScheduled = false
-    tryCatchBegin()
-    // tslint:disable-next-line:no-conditional-assignment
-    while ((runningBranch = this._runningBranch = runningBranchArray.pop())) {
-        tryCatch(runBranch)(runningBranch)
-    }
-    this._runningBranch = this._runningBranchArray = null
-    tryCatchFinally('runAllScheduledBranches()')
 }
 
 function scheduleBranch(branch: Branch) {
