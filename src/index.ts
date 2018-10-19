@@ -16,18 +16,7 @@ import {
 import { tryCatch } from './util/tryCatch'
 
 export function createLeaf<T>(value: T): Leaf<T> {
-    return new Leaf<T>(value)
-}
-
-export function createTwig<T>(handler?: () => T): Twig<T> {
-    return new Twig<T>(handler)
-}
-
-export function createBranch(
-    handler?: (branch: Branch) => void,
-    scheduler?: Scheduler
-): Branch {
-    return new Branch(handler, scheduler)
+    return new Leaf(value)
 }
 
 export function defineLeaf<T>(
@@ -35,7 +24,7 @@ export function defineLeaf<T>(
     prop: string | number | symbol,
     value?: T
 ): Leaf<T> {
-    const leaf = new Leaf<T>(arguments.length < 3 ? obj[prop] : value)
+    const leaf = new Leaf(arguments.length < 3 ? obj[prop] : value)
     Object.defineProperty(obj, prop, {
         get() {
             return leaf.read()
@@ -47,22 +36,6 @@ export function defineLeaf<T>(
         configurable: true,
     })
     return leaf
-}
-
-export function defineTwig<T>(
-    obj: any,
-    prop: string | number | symbol,
-    handler?: () => T
-): Twig<T> {
-    const twig = new Twig<T>(handler)
-    Object.defineProperty(obj, prop, {
-        get() {
-            return twig.read()
-        },
-        enumerable: true,
-        configurable: true,
-    })
-    return twig
 }
 
 const ID = '@@id'
@@ -127,7 +100,7 @@ export class Leaf<T> {
     subject() {
         let subject = this._subject
         if (subject == null) {
-            subject = this._subject = new BehaviorSubject<T>(this.value)
+            subject = this._subject = new BehaviorSubject(this.value)
             subject.subscribe(value => {
                 this.value = value
             })
@@ -162,6 +135,26 @@ export class Leaf<T> {
         }
         return unsubscribeObject(this)
     }
+}
+
+export function createTwig<T>(handler?: () => T): Twig<T> {
+    return new Twig(handler)
+}
+
+export function defineTwig<T>(
+    obj: any,
+    prop: string | number | symbol,
+    handler?: () => T
+): Twig<T> {
+    const twig = new Twig(handler)
+    Object.defineProperty(obj, prop, {
+        get() {
+            return twig.read()
+        },
+        enumerable: true,
+        configurable: true,
+    })
+    return twig
 }
 
 export class Twig<T> {
@@ -208,6 +201,13 @@ export class Twig<T> {
         const subject = this._subject
         subject && subject.next(this)
     }
+}
+
+export function createBranch(
+    handler?: (branch: Branch) => void,
+    scheduler?: Scheduler
+): Branch {
+    return new Branch(handler, scheduler)
 }
 
 export class Branch {
@@ -261,7 +261,20 @@ export class Branch {
         return stopBranch(this)
     }
     dispose() {
-        return disposeBranch(this)
+        if (this._disposed) {
+            return
+        }
+        const parent = this._parent
+        if (parent) {
+            const branches = parent._branches
+            if (branches) {
+                const index = branches.indexOf(this)
+                index > -1 && branches.splice(index, 1)
+            }
+            this._parent = null
+        }
+        this._disposed = true
+        return stopBranch(this)
     }
     freeze() {
         this._frozen = true
@@ -282,15 +295,22 @@ export class Branch {
         return unscheduleBranch(this)
     }
     addTeardown(teardown: TeardownLogic) {
-        return addTeardown(this, teardown)
+        let subscription = this._teardownSubscription
+        if (subscription == null) {
+            subscription = this._teardownSubscription = new Subscription()
+            if (!this._running || this._stopped || this._disposed) {
+                subscription.unsubscribe()
+            }
+        }
+        return subscription.add(teardown)
     }
     setInterval(callback: (...args: any[]) => void, interval: number) {
         const id = setInterval(callback, interval)
-        return addTeardown(this, () => clearInterval(id))
+        return this.addTeardown(() => clearInterval(id))
     }
     setTimeout(callback: (...args: any[]) => void, timeout: number) {
         const id = setTimeout(callback, timeout)
-        return addTeardown(this, () => clearTimeout(id))
+        return this.addTeardown(() => clearTimeout(id))
     }
 }
 
@@ -385,50 +405,6 @@ const generateBranchID = createCounter(0)
 
 let currentTwig = null as Twig<any> | null
 let currentBranch = null as Branch | null
-
-function disposeBranch(branch: Branch) {
-    if (branch._disposed) {
-        return
-    }
-    const parent = branch._parent
-    if (parent) {
-        const branches = parent._branches
-        if (branches) {
-            const index = branches.indexOf(branch)
-            index > -1 && branches.splice(index, 1)
-        }
-        branch._parent = null
-    }
-    branch._disposed = true
-    return stopBranch(branch)
-}
-
-function removeAllBranches(branch: Branch) {
-    const branches = branch._branches
-    if (branches) {
-        branches.forEach(stopBranch)
-        branches.length = 0
-    }
-}
-
-function addTeardown(branch: Branch, teardown: TeardownLogic) {
-    let subscription = branch._teardownSubscription
-    if (subscription == null) {
-        subscription = branch._teardownSubscription = new Subscription()
-        if (!branch._running || branch._stopped || branch._disposed) {
-            subscription.unsubscribe()
-        }
-    }
-    return subscription.add(teardown)
-}
-
-function removeAllTeardowns(branch: Branch) {
-    const subscription = branch._teardownSubscription
-    if (subscription) {
-        branch._teardownSubscription = null
-        tryCatch(subscription.unsubscribe).call(subscription)
-    }
-}
 
 function runTwig<T>(twig: Twig<T>) {
     if (twig._running) {
@@ -543,6 +519,22 @@ function stopBranch(branch: Branch) {
     unsubscribeObject(branch)
     removeAllBranches(branch)
     removeAllTeardowns(branch)
+}
+
+function removeAllBranches(branch: Branch) {
+    const branches = branch._branches
+    if (branches) {
+        branches.forEach(stopBranch)
+        branches.length = 0
+    }
+}
+
+function removeAllTeardowns(branch: Branch) {
+    const subscription = branch._teardownSubscription
+    if (subscription) {
+        branch._teardownSubscription = null
+        tryCatch(subscription.unsubscribe).call(subscription)
+    }
 }
 
 function scheduleBranch(branch: Branch) {
