@@ -78,9 +78,16 @@ interface Signal {
     readonly [SIGNAL]: Observable<Signal>
 }
 
+const defaultSelector = <R>(source: Observable<R>) =>
+    source.pipe(
+        distinctUntilChanged(),
+        skip(1)
+    )
+
 export class Leaf<T> {
     static create = createLeaf
-    static define = defineLeaf;
+    static define = defineLeaf
+    static defaultSelector = defaultSelector;
 
     /** @internal */
     readonly [ID] = generateSignalID()
@@ -89,14 +96,14 @@ export class Leaf<T> {
         return (
             this._signal ||
             (this._signal = this.subject().pipe(
-                distinctUntilChanged(),
-                skip(1),
+                this.selector || defaultSelector,
                 mapTo(this)
             ))
         )
     }
 
     value: T
+    selector?: <R>(source: Observable<T>) => Observable<R>
 
     /** @internal */ _subject?: BehaviorSubject<T>
     /** @internal */ _signal?: Observable<Signal>
