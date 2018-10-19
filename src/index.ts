@@ -222,7 +222,7 @@ export class Branch {
     /** @internal */ _running?: boolean
     /** @internal */ _frozen?: boolean
     /** @internal */ _stopped?: boolean
-    /** @internal */ _removed?: boolean
+    /** @internal */ _disposed?: boolean
     /** @internal */ _signals?: Signal[]
     /** @internal */ _parent?: Branch | null
     /** @internal */ _branches?: Branch[] | null
@@ -248,7 +248,7 @@ export class Branch {
 
     /** @internal */
     get ready() {
-        return !this._frozen && !this._stopped && !this._removed
+        return !this._frozen && !this._stopped && !this._disposed
     }
 
     run() {
@@ -260,8 +260,8 @@ export class Branch {
     stop() {
         return stopBranch(this)
     }
-    remove() {
-        return removeBranch(this)
+    dispose() {
+        return disposeBranch(this)
     }
     freeze() {
         this._frozen = true
@@ -270,13 +270,13 @@ export class Branch {
         this._frozen = false
     }
     schedule() {
-        if (this._removed) {
+        if (this._disposed) {
             return
         }
         return scheduleBranch(this)
     }
     unschedule() {
-        if (this._removed) {
+        if (this._disposed) {
             return
         }
         return unscheduleBranch(this)
@@ -386,8 +386,8 @@ const generateBranchID = createCounter(0)
 let currentTwig = null as Twig<any> | null
 let currentBranch = null as Branch | null
 
-function removeBranch(branch: Branch) {
-    if (branch._removed) {
+function disposeBranch(branch: Branch) {
+    if (branch._disposed) {
         return
     }
     const parent = branch._parent
@@ -399,7 +399,7 @@ function removeBranch(branch: Branch) {
         }
         branch._parent = null
     }
-    branch._removed = true
+    branch._disposed = true
     return stopBranch(branch)
 }
 
@@ -415,7 +415,7 @@ function addTeardown(branch: Branch, teardown: TeardownLogic) {
     let subscription = branch._teardownSubscription
     if (subscription == null) {
         subscription = branch._teardownSubscription = new Subscription()
-        if (!branch._running || branch._stopped || branch._removed) {
+        if (!branch._running || branch._stopped || branch._disposed) {
             subscription.unsubscribe()
         }
     }
@@ -484,7 +484,7 @@ function runTwig<T>(twig: Twig<T>) {
 }
 
 function runBranch(branch: Branch) {
-    if (branch._removed) {
+    if (branch._disposed) {
         return
     }
 
@@ -512,7 +512,7 @@ function runBranch(branch: Branch) {
 
         // tslint:disable-next-line:label-position
         Finally: {
-            if (branch._stopped || branch._removed) {
+            if (branch._stopped || branch._disposed) {
                 break Finally
             }
 
@@ -538,11 +538,11 @@ function runBranch(branch: Branch) {
 function stopBranch(branch: Branch) {
     const signals = branch._signals
     signals && (signals.length = 0)
+    branch._stopped = true
     unscheduleBranch(branch)
     unsubscribeObject(branch)
     removeAllBranches(branch)
     removeAllTeardowns(branch)
-    branch._stopped = true
 }
 
 function scheduleBranch(branch: Branch) {

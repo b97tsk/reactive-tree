@@ -299,7 +299,7 @@ class Branch {
   handler?: (branch: Branch) => void;
   run(): void;
   stop(): void;
-  remove(): void;
+  dispose(): void;
   freeze(): void;
   unfreeze(): void;
   schedule(): void;
@@ -324,11 +324,11 @@ An error throws if `run()` is called inside the `handler` function.
 
 `stop()` stops the branch.
 
-#### class Branch: remove()
+#### class Branch: dispose()
 
-`remove()` removes the branch permanently.
+`dispose()` removes the branch permanently.
 
-You can `run()` or `schedule()` a stopped branch again, but not a removed
+You can `run()` or `schedule()` a stopped branch again, but not a disposed
 branch.
 
 #### class Branch: freeze()
@@ -336,8 +336,7 @@ branch.
 `freeze()` freezes the branch. Subsequent reactive properties will **NOT** be
 collected by the branch.
 
-`freeze()` must be called inside the `handler` function, otherwise an error
-throws.
+`freeze()` should only be called inside the `handler` function.
 
 #### class Branch: unfreeze()
 
@@ -347,8 +346,7 @@ properties.
 `unfreeze()` need not be called if there is no subsequent reactive properties
 after.
 
-`unfreeze()` must be called inside the `handler` function, otherwise an error
-throws.
+`unfreeze()` should only be called inside the `handler` function.
 
 #### class Branch: schedule()
 
@@ -362,27 +360,24 @@ as possible**.
 #### class Branch: addTeardown()
 
 `addTeardown()` adds something to do when the branch restarts or stops or is
-removed. This is useful if you need to undo something that is done inside the
-`handler` function.
+being disposed. This is useful if you need to undo something that is done inside
+the `handler` function.
 
-`addTeardown()` must be called inside the `handler` function, otherwise an error
-throws.
+`addTeardown()` should only be called inside the `handler` function.
 
 #### class Branch: setInterval()
 
 `setInterval()` starts a timer. `clearInterval()` is automatically called when
-the branch restarts or stops or is removed.
+the branch restarts or stops or is being disposed.
 
-`setInterval()` must be called inside the `handler` function, otherwise an error
-throws.
+`setInterval()` should only be called inside the `handler` function.
 
 #### class Branch: setTimeout()
 
 `setTimeout()` starts a timer. `clearTimeout()` is automatically called when the
-branch restarts or stops or is removed.
+branch restarts or stops or is being disposed.
 
-`setTimeout()` must be called inside the `handler` function, otherwise an error
-throws.
+`setTimeout()` should only be called inside the `handler` function.
 
 ## License
 

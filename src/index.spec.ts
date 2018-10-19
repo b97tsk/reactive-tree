@@ -142,12 +142,12 @@ describe('Branch', () => {
         branch.run()
         expect(value).to.equal(42)
     })
-    it('remove() a branch permanently', () => {
+    it('dispose() a branch', () => {
         let value = 40
         const branch = createBranch(() => {
             value += 2
         })
-        branch.remove()
+        branch.dispose()
         branch.run()
         expect(value).to.equal(42)
     })
