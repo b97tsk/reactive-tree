@@ -13,12 +13,7 @@ import {
     refCount,
     skip,
 } from 'rxjs/operators'
-import {
-    tryCatch,
-    tryCatchBegin,
-    tryCatchFinally,
-    tryCatchThrow,
-} from './util/tryCatch'
+import { tryCatch } from './util/tryCatch'
 
 export function createLeaf<T>(value: T): Leaf<T> {
     return new Leaf<T>(value)
@@ -125,13 +120,9 @@ export class Leaf<T> {
         return this.value
     }
     write(value: T) {
-        tryCatchBegin()
-        tryCatch(this.unsubscribe).call(this)
+        this.unsubscribe()
         const subject = this._subject
-        subject
-            ? tryCatch(subject.next).call(subject, value)
-            : (this.value = value)
-        tryCatchFinally('Leaf.write()')
+        subject ? subject.next(value) : (this.value = value)
     }
     subject() {
         let subject = this._subject
@@ -166,7 +157,8 @@ export class Leaf<T> {
         const subscriptionMany = this._subscriptionMany
         if (subscriptionMany) {
             this._subscription = this._subscriptionMany = null
-            return subscriptionMany.unsubscribe()
+            tryCatch(subscriptionMany.unsubscribe).call(subscriptionMany)
+            return
         }
         return unsubscribeObject(this)
     }
@@ -327,7 +319,6 @@ export class Scheduler {
         this._scheduled = false
         this._scheduledBranches = []
         this._runningBranches = runningBranches
-        tryCatchBegin()
         let runningBranch: Branch | undefined
         // tslint:disable-next-line:no-conditional-assignment
         while ((runningBranch = runningBranches.pop())) {
@@ -335,7 +326,6 @@ export class Scheduler {
             tryCatch(runBranch)(runningBranch)
         }
         this._runningBranch = this._runningBranches = null
-        tryCatchFinally('Scheduler.flush()')
     }
     schedule(callback: (...args: any[]) => void) {
         setTimeout(callback, 0)
@@ -367,7 +357,7 @@ export class Scheduler {
         }
 
         this._scheduled = true
-        this.schedule(this.flush.bind(this))
+        tryCatch(this.schedule).call(this, this.flush.bind(this))
     }
     unscheduleBranch(branch: Branch) {
         const branchID = branch[ID]
@@ -416,12 +406,8 @@ function removeBranch(branch: Branch) {
 function removeAllBranches(branch: Branch) {
     const branches = branch._branches
     if (branches) {
-        tryCatchBegin()
-        for (const branch of branches) {
-            tryCatch(stopBranch)(branch)
-        }
+        branches.forEach(stopBranch)
         branches.length = 0
-        tryCatchFinally('removeAllBranches()')
     }
 }
 
@@ -433,18 +419,14 @@ function addTeardown(branch: Branch, teardown: TeardownLogic) {
             subscription.unsubscribe()
         }
     }
-    subscription = subscription.add(teardown)
-    if (!branch._running) {
-        throw new Error('branch is not running')
-    }
-    return subscription
+    return subscription.add(teardown)
 }
 
 function removeAllTeardowns(branch: Branch) {
     const subscription = branch._teardownSubscription
     if (subscription) {
         branch._teardownSubscription = null
-        subscription.unsubscribe()
+        tryCatch(subscription.unsubscribe).call(subscription)
     }
 }
 
@@ -464,47 +446,41 @@ function runTwig<T>(twig: Twig<T>) {
     twig._signals = latestSignals
     twig._running = true
 
-    tryCatchBegin()
+    try {
+        const { handler } = twig
+        if (handler == null) {
+            throw new Error('handler is not set')
+        }
+        twig._value = handler()
+        twig.dirty = false
+    } finally {
+        twig._running = false
 
-    const { handler } = twig
-    if (handler == null) {
-        tryCatchThrow(new Error('handler is not set'))
-    } else {
-        const { err, val } = tryCatch(handler)()
-        if (err == null) {
-            twig._value = val
-            twig.dirty = false
+        currentTwig = previousTwig
+        currentBranch = previousBranch
+
+        // tslint:disable-next-line:label-position
+        Finally: {
+            if (compareTwoArrays(lastSignals, latestSignals)) {
+                break Finally
+            }
+
+            unsubscribeObject(twig)
+
+            if (latestSignals.length === 0) {
+                break Finally
+            }
+
+            const observable = merge(...latestSignals.map(x => x[SIGNAL])).pipe(
+                multicast(() => twig[SIGNAL]),
+                refCount()
+            )
+
+            twig._subscription = observable.subscribe(() => {
+                twig.dirty = true
+            })
         }
     }
-
-    twig._running = false
-
-    currentTwig = previousTwig
-    currentBranch = previousBranch
-
-    // tslint:disable-next-line:label-position
-    Finally: {
-        if (compareTwoArrays(lastSignals, latestSignals)) {
-            break Finally
-        }
-
-        tryCatch(unsubscribeObject)(twig)
-
-        if (latestSignals.length === 0) {
-            break Finally
-        }
-
-        const observable = merge(...latestSignals.map(x => x[SIGNAL])).pipe(
-            multicast(() => twig[SIGNAL]),
-            refCount()
-        )
-
-        twig._subscription = observable.subscribe(() => {
-            twig.dirty = true
-        })
-    }
-
-    tryCatchFinally('runTwig()')
 }
 
 function runBranch(branch: Branch) {
@@ -523,54 +499,50 @@ function runBranch(branch: Branch) {
     branch._frozen = false
     branch._stopped = false
 
-    tryCatchBegin()
+    removeAllBranches(branch)
+    removeAllTeardowns(branch)
 
-    tryCatch(removeAllBranches)(branch)
-    tryCatch(removeAllTeardowns)(branch)
+    try {
+        const { handler } = branch
+        handler && handler(branch)
+    } finally {
+        branch._running = false
 
-    const { handler } = branch
-    handler && tryCatch(handler)(branch)
+        currentBranch = previousBranch
 
-    branch._running = false
+        // tslint:disable-next-line:label-position
+        Finally: {
+            if (branch._stopped || branch._removed) {
+                break Finally
+            }
 
-    currentBranch = previousBranch
+            if (compareTwoArrays(lastSignals, latestSignals)) {
+                break Finally
+            }
 
-    // tslint:disable-next-line:label-position
-    Finally: {
-        if (branch._stopped || branch._removed) {
-            break Finally
+            unsubscribeObject(branch)
+
+            if (latestSignals.length === 0) {
+                break Finally
+            }
+
+            const observable = merge(...latestSignals.map(x => x[SIGNAL]))
+
+            branch._subscription = observable.subscribe(() =>
+                scheduleBranch(branch)
+            )
         }
-
-        if (compareTwoArrays(lastSignals, latestSignals)) {
-            break Finally
-        }
-
-        tryCatch(unsubscribeObject)(branch)
-
-        if (latestSignals.length === 0) {
-            break Finally
-        }
-
-        const observable = merge(...latestSignals.map(x => x[SIGNAL]))
-
-        branch._subscription = observable.subscribe(() =>
-            scheduleBranch(branch)
-        )
     }
-
-    tryCatchFinally('runBranch()')
 }
 
 function stopBranch(branch: Branch) {
     const signals = branch._signals
     signals && (signals.length = 0)
-    tryCatchBegin()
-    tryCatch(unscheduleBranch)(branch)
-    tryCatch(unsubscribeObject)(branch)
-    tryCatch(removeAllBranches)(branch)
-    tryCatch(removeAllTeardowns)(branch)
+    unscheduleBranch(branch)
+    unsubscribeObject(branch)
+    removeAllBranches(branch)
+    removeAllTeardowns(branch)
     branch._stopped = true
-    tryCatchFinally('stopBranch()')
 }
 
 function scheduleBranch(branch: Branch) {
@@ -598,7 +570,7 @@ function unsubscribeObject(x: { _subscription?: Subscription | null }) {
     const subscription = x._subscription
     if (subscription) {
         x._subscription = null
-        subscription.unsubscribe()
+        tryCatch(subscription.unsubscribe).call(subscription)
     }
 }
 
