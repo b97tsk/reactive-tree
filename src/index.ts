@@ -15,6 +15,7 @@ import {
     refCount,
     skip,
 } from 'rxjs/operators'
+import { endless } from './util/endless'
 import { tryCatch } from './util/tryCatch'
 
 export const identity = '@@identity'
@@ -35,7 +36,13 @@ export function createSignal<T>(source: ObservableInput<T>): Signal {
         },
         [observable]: {
             get() {
-                return obs || (obs = from(source).pipe(mapTo(this)))
+                return (
+                    obs ||
+                    (obs = from(source).pipe(
+                        endless,
+                        mapTo(this)
+                    ))
+                )
             },
             enumerable: true,
             configurable: true,
