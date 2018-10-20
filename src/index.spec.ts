@@ -2,10 +2,18 @@ import { expect } from 'chai'
 import { describe, it } from 'mocha'
 import { of, queueScheduler } from 'rxjs'
 import { subscribeOn } from 'rxjs/operators'
-import { createBranch, createLeaf, createTwig, Scheduler } from '.'
+import {
+    connectSignal,
+    createBranch,
+    createLeaf,
+    createSignal,
+    createTwig,
+    Scheduler,
+} from '.'
 
 const schedule = (callback: (...args: any[]) => void) =>
     queueScheduler.schedule(callback)
+
 Scheduler.default.schedule = schedule
 
 describe('Leaf', () => {
@@ -114,6 +122,23 @@ describe('Twig', () => {
         leaf_b.write(30)
         expect(twig.value).to.equal(42)
     })
+    it('use signals inside handler', done => {
+        schedule(() => {
+            const signal = createSignal(
+                of(1, 2, 3).pipe(subscribeOn(queueScheduler))
+            )
+            let value = 0
+            const twig = createTwig(() => {
+                connectSignal(signal)
+                return ++value
+            })
+            expect(twig.value).to.equal(1)
+            schedule(() => {
+                expect(twig.value).to.equal(2)
+                done()
+            })
+        })
+    })
     it('notify() a change', () => {
         const twig_a = createTwig(() => 42)
         const twig_b = createTwig(() => twig_a.read())
@@ -194,6 +219,27 @@ describe('Branch', () => {
                 expect(value).to.equal(39)
                 schedule(() => {
                     expect(value).to.equal(45)
+                    done()
+                })
+            })
+        })
+    })
+    it('use signals inside handler', done => {
+        schedule(() => {
+            const signal = createSignal(
+                of(1, 2, 3).pipe(subscribeOn(queueScheduler))
+            )
+            let value = 0
+            createBranch(() => {
+                connectSignal(signal)
+                value++
+            })
+            expect(value).to.equal(1)
+            schedule(() => {
+                // Branches schedule to run when they receive a signal.
+                expect(value).to.equal(1)
+                schedule(() => {
+                    expect(value).to.equal(2)
                     done()
                 })
             })
