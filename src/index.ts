@@ -86,8 +86,7 @@ const defaultSelector = <R>(source: Observable<R>) =>
 
 export class Leaf<T> implements Signal {
     static create = createLeaf
-    static define = defineLeaf
-    static defaultSelector = defaultSelector;
+    static define = defineLeaf;
 
     /** @internal */
     readonly [identity] = generateSignalID()
