@@ -24,20 +24,36 @@ export interface Signal {
 }
 
 export function createSignal<T>(source: Observable<T>): Signal {
-    const signalID = generateSignalID()
-    let signalObservable: Observable<Signal> | undefined
-    return {
-        get [identity]() {
-            return signalID
+    let obs: Observable<Signal> | undefined
+    return Object.create(Signal.prototype, {
+        [identity]: {
+            value: generateSignalID(),
+            enumerable: true,
+            configurable: true,
         },
-        get [observable]() {
-            return (
-                signalObservable ||
-                (signalObservable = source.pipe(mapTo(this)))
-            )
+        [observable]: {
+            get() {
+                return obs || (obs = source.pipe(mapTo(this)))
+            },
+            enumerable: true,
+            configurable: true,
         },
+    })
+}
+
+export class Signal {
+    static create = createSignal
+    static connect(signal: Signal) {
+        if (currentTwig) {
+            addSignal(currentTwig, signal)
+        }
+        if (currentBranch && currentBranch.ready) {
+            addSignal(currentBranch, signal)
+        }
     }
 }
+
+const Signal_connect = Signal.connect
 
 export function createLeaf<T>(value: T): Leaf<T> {
     return new Leaf(value)
@@ -100,12 +116,7 @@ export class Leaf<T> implements Signal {
     }
 
     read() {
-        if (currentTwig) {
-            addSignal(currentTwig, this)
-        }
-        if (currentBranch && currentBranch.ready) {
-            addSignal(currentBranch, this)
-        }
+        Signal_connect(this)
         return this.value
     }
     write(value: T) {
@@ -204,12 +215,7 @@ export class Twig<T> implements Signal {
     }
 
     read(): T {
-        if (currentTwig && currentTwig !== this) {
-            addSignal(currentTwig, this)
-        }
-        if (currentBranch && currentBranch.ready) {
-            addSignal(currentBranch, this)
-        }
+        Signal_connect(this)
         this.dirty && runTwig(this)
         return this._value!
     }
