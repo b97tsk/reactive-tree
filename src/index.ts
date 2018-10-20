@@ -1,7 +1,9 @@
 import {
+    from,
     merge,
     BehaviorSubject,
     Observable,
+    ObservableInput,
     Subject,
     Subscription,
     TeardownLogic,
@@ -23,7 +25,7 @@ export interface Signal {
     readonly [observable]: Observable<Signal>
 }
 
-export function createSignal<T>(source: Observable<T>): Signal {
+export function createSignal<T>(source: ObservableInput<T>): Signal {
     let obs: Observable<Signal> | undefined
     return Object.create(Signal.prototype, {
         [identity]: {
@@ -33,7 +35,7 @@ export function createSignal<T>(source: Observable<T>): Signal {
         },
         [observable]: {
             get() {
-                return obs || (obs = source.pipe(mapTo(this)))
+                return obs || (obs = from(source).pipe(mapTo(this)))
             },
             enumerable: true,
             configurable: true,
@@ -133,8 +135,8 @@ export class Leaf<T> implements Signal {
         }
         return subject
     }
-    subscribe(source: Observable<T>) {
-        const subscription = source.subscribe(value => {
+    subscribe(source: ObservableInput<T>) {
+        const subscription = from(source).subscribe(value => {
             const subject = this._subject
             subject ? subject.next(value) : (this.value = value)
         })
