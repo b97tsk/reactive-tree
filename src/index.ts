@@ -13,6 +13,7 @@ import {
     mapTo,
     multicast,
     refCount,
+    share,
     skip,
 } from 'rxjs/operators'
 import { endless } from './util/endless'
@@ -27,42 +28,38 @@ export interface Signal {
 }
 
 export function createSignal<T>(source: ObservableInput<T>): Signal {
+    const signalID = generateSignalID()
     let obs: Observable<Signal> | undefined
-    return Object.create(Signal.prototype, {
-        [identity]: {
-            value: generateSignalID(),
-            enumerable: true,
-            configurable: true,
+    return {
+        get [identity]() {
+            return signalID
         },
-        [observable]: {
-            get() {
-                return (
-                    obs ||
-                    (obs = from(source).pipe(
-                        endless,
-                        mapTo(this)
-                    ))
-                )
-            },
-            enumerable: true,
-            configurable: true,
+        get [observable]() {
+            return (
+                obs ||
+                (obs = from(source).pipe(
+                    endless,
+                    mapTo(this),
+                    share()
+                ))
+            )
         },
-    })
+    }
+}
+
+export function connectSignal(signal: Signal) {
+    if (currentTwig) {
+        addSignal(currentTwig, signal)
+    }
+    if (currentBranch && currentBranch.ready) {
+        addSignal(currentBranch, signal)
+    }
 }
 
 export class Signal {
     static create = createSignal
-    static connect(signal: Signal) {
-        if (currentTwig) {
-            addSignal(currentTwig, signal)
-        }
-        if (currentBranch && currentBranch.ready) {
-            addSignal(currentBranch, signal)
-        }
-    }
+    static connect = connectSignal
 }
-
-const Signal_connect = Signal.connect
 
 export function createLeaf<T>(value: T): Leaf<T> {
     return new Leaf(value)
@@ -124,7 +121,7 @@ export class Leaf<T> implements Signal {
     }
 
     read() {
-        Signal_connect(this)
+        connectSignal(this)
         return this.value
     }
     write(value: T) {
@@ -223,7 +220,7 @@ export class Twig<T> implements Signal {
     }
 
     read(): T {
-        Signal_connect(this)
+        connectSignal(this)
         this.dirty && runTwig(this)
         return this._value!
     }
