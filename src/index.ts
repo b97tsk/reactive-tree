@@ -230,11 +230,22 @@ export class Twig<T> implements Signal {
     }
 }
 
+export function createBranch(handler?: (branch: Branch) => void): Branch
 export function createBranch(
-    handler?: (branch: Branch) => void,
-    scheduler?: Scheduler
+    scheduler?: Scheduler,
+    handler?: (branch: Branch) => void
+): Branch
+export function createBranch(
+    schedulerOrHandler?: Scheduler | ((branch: Branch) => void),
+    handler?: (branch: Branch) => void
 ): Branch {
-    return new Branch(handler, scheduler)
+    if (schedulerOrHandler instanceof Scheduler) {
+        const instance = Object.create(Branch.prototype)
+        instance.scheduler = schedulerOrHandler
+        Branch.call(instance, handler)
+        return instance
+    }
+    return new Branch(schedulerOrHandler || handler)
 }
 
 export class Branch {
@@ -257,7 +268,7 @@ export class Branch {
     /** @internal */ _teardownSubscription?: Subscription | null
 
     /** @internal */
-    constructor(handler?: (branch: Branch) => void, scheduler?: Scheduler) {
+    constructor(handler?: (branch: Branch) => void) {
         if (currentTwig) {
             throw new Error('creating branches on a twig is forbidden')
         }
@@ -266,10 +277,10 @@ export class Branch {
             const branches = parent._branches || (parent._branches = [])
             branches.push(this)
             this._parent = parent
-            scheduler || (scheduler = parent.scheduler)
+            const { scheduler } = parent
+            scheduler && (this.scheduler || (this.scheduler = scheduler))
         }
         this.handler = handler
-        scheduler && (this.scheduler = scheduler)
         handler && runBranch(this)
     }
 

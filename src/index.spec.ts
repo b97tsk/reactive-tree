@@ -159,6 +159,16 @@ describe('Branch', () => {
         expect(branch.handler).to.equal(handler)
         expect(value).to.equal(42)
     })
+    it('createBranch() with a handler and a scheduler', () => {
+        let value = NaN
+        const handler = () => {
+            value = 42
+        }
+        const scheduler = new Scheduler(schedule)
+        const branch = createBranch(scheduler, handler)
+        expect(branch.handler).to.equal(handler)
+        expect(value).to.equal(42)
+    })
     it('run() a branch manually', () => {
         let value = 40
         const branch = createBranch(() => {
