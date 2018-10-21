@@ -34,9 +34,9 @@ reading.
 
 ### Twigs
 
-A twig is like a cached computed property. It has a value that is computed from
-its `handler` function. It computes only when someone try to get its value and
-it's **dirty**.
+A twig behaves as a computed property with cache. It has a value that is
+computed from its `handler` function. It computes only when someone try to get
+its value and it's **dirty**.
 
 A twig gets **dirty** when:
 
@@ -70,7 +70,7 @@ different value.
 
 A branch creates a reactive procedure: it collects reactive properties by
 calling its `handler` function; then it waits until any of those reactive
-properties reacts, it restarts this procedure (by scheduling, not immediately).
+properties reacts, it schedules to restart this procedure.
 
 #### Example: Create a branch
 
@@ -142,62 +142,14 @@ setTimeout(() => {
 //   No book is showing.
 ```
 
-The more branches are nested, the more they look like a tree, I guess.
-
 ## API
-
-### Functions
-
-#### function createLeaf()
-
-```typescript
-function createLeaf<T>(value: T): Leaf<T>;
-```
-
-Creates a leaf with a value.
-
-#### function createTwig()
-
-```typescript
-function createTwig<T>(handler?: () => T): Twig<T>;
-```
-
-Creates a twig with a handler.
-
-#### function createBranch()
-
-```typescript
-function createBranch(handler?: (branch: Branch) => void): Branch;
-```
-
-Creates a branch with a handler.
-
-#### function defineLeaf()
-
-```typescript
-function defineLeaf<T>(obj: any, prop: string, value?: T): Leaf<T>;
-```
-
-Creates a leaf with a value, like `createLeaf()`, but also defines a property
-for an object, which corresponds with that leaf:
-
-- when you get this property, it returns `leaf.read()`;
-- when you set this property to something, it calls `leaf.write(something)`.
-
-#### function defineTwig()
-
-```typescript
-function defineTwig<T>(obj: any, prop: string, handler?: () => T): Twig<T>;
-```
-
-Creates a twig with a handler, like `createTwig()`, but also defines a property
-for an object, which corresponds with that twig:
-
-- when you get this property, it returns `twig.read()`.
 
 ### class Leaf
 
 ```typescript
+function createLeaf<T>(value: T): Leaf<T>;
+function defineLeaf<T>(obj: any, prop: string, value?: T): Leaf<T>;
+
 class Leaf<T> {
   static create = createLeaf;
   static define = defineLeaf;
@@ -205,10 +157,22 @@ class Leaf<T> {
   read(): T;
   write(value: T): void;
   subject(): BehaviorSubject<T>;
-  subscribe(observable: Observable<T>): Subscription;
+  subscribe(observable: ObservableInput<T>): Subscription;
   unsubscribe(): void;
 }
 ```
+
+#### function createLeaf()
+
+Creates a leaf with a value.
+
+#### function defineLeaf()
+
+Creates a leaf with a value, like `createLeaf()`, but also defines a property
+for an object, which corresponds with that leaf:
+
+- when you get this property, it returns `leaf.read()`;
+- when you set this property to something, it calls `leaf.write(something)`.
 
 #### class Leaf: value
 
@@ -249,26 +213,40 @@ also cancels all those subscriptions.
 ### class Twig
 
 ```typescript
+function createTwig<T>(handler?: () => T): Twig<T>;
+function defineTwig<T>(obj: any, prop: string, handler?: () => T): Twig<T>;
+
 class Twig<T> {
   static create = createTwig;
   static define = defineTwig;
-  handler?: () => T;
   dirty: boolean;
+  handler?: () => T;
   readonly value: T;
   read(): T;
   notify(): void;
 }
 ```
 
-#### class Twig: handler
+#### function createTwig()
 
-`handler` is a data property, no magic happen when you get or set this property.
+Creates a twig with a handler.
+
+#### function defineTwig()
+
+Creates a twig with a handler, like `createTwig()`, but also defines a property
+for an object, which corresponds with that twig:
+
+- when you get this property, it returns `twig.read()`.
 
 #### class Twig: dirty
 
 `dirty` indicates whether the twig should update the cached value.
 
 `dirty` is a data property, no magic happen when you get or set this property.
+
+#### class Twig: handler
+
+`handler` is a data property, no magic happen when you get or set this property.
 
 #### class Twig: value
 
@@ -294,6 +272,8 @@ function which must be a twig or an unfrozen branch.
 ### class Branch
 
 ```typescript
+function createBranch(handler?: (branch: Branch) => void): Branch;
+
 class Branch {
   static create = createBranch;
   handler?: (branch: Branch) => void;
@@ -309,6 +289,10 @@ class Branch {
   setTimeout(callback: (...args: any[]) => void, timeout: number): void;
 }
 ```
+
+#### function createBranch()
+
+Creates a branch with a handler.
 
 #### class Branch: handler
 
@@ -378,6 +362,23 @@ the branch restarts or stops or is being disposed.
 branch restarts or stops or is being disposed.
 
 `setTimeout()` should only be called inside the `handler` function.
+
+### class Signal
+
+```typescript
+function createSignal<T>(source: ObservableInput<T>): Signal;
+function connectSignal(signal: Signal): void;
+
+class Signal {
+  static create: typeof createSignal;
+  static connect: typeof connectSignal;
+}
+```
+
+`createSignal()` creates a signal from an observable. To connect a signal with
+twigs or branches, use `connectSignal()` inside twigs' or branches' `handler`
+function. Any value emission from this signal causes those twigs or branches to
+react (twigs become dirty, branches schedule to run again).
 
 ## License
 
