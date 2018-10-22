@@ -17,7 +17,7 @@ npm install reactive-tree
 
 ### Leaves
 
-A leaf behaves as a reactive property. It reacts when its value changes.
+A leaf behaves as a reactive property. It reacts whenever its value changes.
 
 #### Example: Create a leaf
 
@@ -29,8 +29,8 @@ const leaf = createLeaf("world");
 console.log(`Hello, ${leaf.value}.`); // Hello, world.
 ```
 
-This example doesn't show how a leaf reacts when its value changes. Let's keep
-reading.
+This example doesn't show how a leaf reacts whenever its value changes. Let's
+keep reading.
 
 ### Twigs
 
@@ -183,9 +183,9 @@ setting this property.
 
 #### class Leaf: read()
 
-`read()` returns `value`. Additionally, calling `read()` inside a **handler**
-function causes the leaf to be collected by the owner of that **handler**
-function which must be a twig or an unfrozen branch.
+`read()` returns `value`. Additionally, calling `read()` inside a `handler`
+function causes the leaf to be collected by the owner of that `handler`
+function, which must be a twig or an **unfrozen** branch.
 
 #### class Leaf: write()
 
@@ -261,9 +261,9 @@ Generally, you should consider using `read()` instead of getting this property.
 
 #### class Twig: read()
 
-`read()` returns `value`. Additionally, calling `read()` inside a **handler**
-function causes the twig to be collected by the owner of that **handler**
-function which must be a twig or an unfrozen branch.
+`read()` returns `value`. Additionally, calling `read()` inside a `handler`
+function causes the twig to be collected by the owner of that `handler`
+function, which must be a twig or an **unfrozen** branch.
 
 #### class Twig: notify()
 
