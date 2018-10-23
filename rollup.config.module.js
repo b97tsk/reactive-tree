@@ -6,7 +6,6 @@ export default {
     ],
     output: {
         file: 'module.js',
-        format: 'esm',
-        sourcemap: true
+        format: 'esm'
     }
 };

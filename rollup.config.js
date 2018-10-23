@@ -6,7 +6,6 @@ export default {
     ],
     output: {
         file: 'main.js',
-        format: 'cjs',
-        sourcemap: true
+        format: 'cjs'
     }
 };

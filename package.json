@@ -8,16 +8,14 @@
   "types": "types.d.ts",
   "files": [
     "main.js",
-    "main.js.map",
     "module.js",
-    "module.js.map",
     "types.d.ts"
   ],
   "scripts": {
     "prepare": "npm run build && npm run build-module",
     "build": "npx tsc --target es5 --module es2015 && npx rollup -c && cp build/index.d.ts types.d.ts",
     "build-module": "npx tsc --target es2015 --module es2015 && npx rollup -c rollup.config.module.js",
-    "cleanup": "rm -rf build main.js main.js.map module.js module.js.map types.d.ts",
+    "cleanup": "rm -rf build main.js module.js types.d.ts",
     "test": "npx mocha -r ts-node/register ./src/**/*.spec.ts"
   },
   "repository": {
