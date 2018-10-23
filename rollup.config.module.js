@@ -5,8 +5,8 @@ export default {
         'rxjs/operators'
     ],
     output: {
-        file: 'main.js',
-        format: 'cjs',
+        file: 'module.js',
+        format: 'esm',
         sourcemap: true
     }
 };

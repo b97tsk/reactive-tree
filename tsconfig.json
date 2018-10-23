@@ -2,10 +2,11 @@
   "compilerOptions": {
     "target": "es5",
     "module": "commonjs",
+    "moduleResolution": "node",
     "lib": ["es2015"],
     "declaration": true,
-    "sourceMap": true,
-    "outDir": "./",
+    "sourceMap": false,
+    "outDir": "build",
     "strict": true,
     "stripInternal": true,
     "removeComments": true,

@@ -2,19 +2,22 @@
   "name": "reactive-tree",
   "version": "2.0.0",
   "description": "A simple library for reactive programming",
-  "main": "index.js",
-  "types": "index.d.ts",
+  "main": "main.js",
+  "module": "module.js",
+  "jsnext:main": "module.js",
+  "types": "types.d.ts",
   "files": [
-    "util/**/*.d.ts",
-    "util/**/*.js",
-    "util/**/*.js.map",
-    "index.d.ts",
-    "index.js",
-    "index.js.map"
+    "main.js",
+    "main.js.map",
+    "module.js",
+    "module.js.map",
+    "types.d.ts"
   ],
   "scripts": {
-    "prepare": "npx tsc",
-    "rollup": "npx tsc --module es2015 --moduleResolution node && npx rollup -c",
+    "prepare": "npm run build && npm run build-module",
+    "build": "npx tsc --target es5 --module es2015 && npx rollup -c && cp build/index.d.ts types.d.ts",
+    "build-module": "npx tsc --target es2015 --module es2015 && npx rollup -c rollup.config.module.js",
+    "cleanup": "rm -rf build main.js main.js.map module.js module.js.map types.d.ts",
     "test": "npx mocha -r ts-node/register ./src/**/*.spec.ts"
   },
   "repository": {
