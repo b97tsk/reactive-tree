@@ -148,7 +148,8 @@ setTimeout(() => {
 
 ```typescript
 function createLeaf<T>(value: T): Leaf<T>;
-function defineLeaf<T>(obj: any, prop: string, value?: T): Leaf<T>;
+function defineLeaf<T, K extends keyof T>(obj: T, prop: K): Leaf<T[K]>;
+function defineLeaf<T>(obj: any, prop: keyof any, value: T): Leaf<T>;
 
 class Leaf<T> {
   static create = createLeaf;
@@ -214,7 +215,7 @@ also cancels all those subscriptions.
 
 ```typescript
 function createTwig<T>(handler?: () => T): Twig<T>;
-function defineTwig<T>(obj: any, prop: string, handler?: () => T): Twig<T>;
+function defineTwig<T>(obj: any, prop: keyof any, handler?: () => T): Twig<T>;
 
 class Twig<T> {
   static create = createTwig;
@@ -343,23 +344,23 @@ as possible**.
 
 #### class Branch: addTeardown()
 
-`addTeardown()` adds something to do when the branch restarts or stops or is
-being disposed. This is useful if you need to undo something that is done inside
-the `handler` function.
+`addTeardown()` adds something to do when the branch restarts or stops or
+disposes. This is useful if you need to undo something that is done inside the
+`handler` function.
 
 `addTeardown()` should only be called inside the `handler` function.
 
 #### class Branch: setInterval()
 
 `setInterval()` starts a timer. `clearInterval()` is automatically called when
-the branch restarts or stops or is being disposed.
+the branch restarts or stops or disposes.
 
 `setInterval()` should only be called inside the `handler` function.
 
 #### class Branch: setTimeout()
 
 `setTimeout()` starts a timer. `clearTimeout()` is automatically called when the
-branch restarts or stops or is being disposed.
+branch restarts or stops or disposes.
 
 `setTimeout()` should only be called inside the `handler` function.
 

@@ -65,11 +65,9 @@ export function createLeaf<T>(value: T): Leaf<T> {
     return new Leaf(value)
 }
 
-export function defineLeaf<T>(
-    obj: any,
-    prop: string | number | symbol,
-    value?: T
-): Leaf<T> {
+export function defineLeaf<T, K extends keyof T>(obj: T, prop: K): Leaf<T[K]>
+export function defineLeaf<T>(obj: any, prop: keyof any, value: T): Leaf<T>
+export function defineLeaf<T>(obj: any, prop: keyof any, value?: T): Leaf<T> {
     const leaf = new Leaf(arguments.length < 3 ? obj[prop] : value)
     Object.defineProperty(obj, prop, {
         get() {
@@ -175,7 +173,7 @@ export function createTwig<T>(handler?: () => T): Twig<T> {
 
 export function defineTwig<T>(
     obj: any,
-    prop: string | number | symbol,
+    prop: keyof any,
     handler?: () => T
 ): Twig<T> {
     const twig = new Twig(handler)
