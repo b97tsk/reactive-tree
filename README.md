@@ -5,7 +5,7 @@ A simple library for reactive programming.
 This library may help you write your view controllers with less pain. But if you
 are working with some kind of framework, you might find nowhere to use it.
 
-Requires [RxJS 6](https://github.com/ReactiveX/RxJS).
+Requires [RxJS 6](https://github.com/ReactiveX/rxjs).
 
 ## Installation
 
@@ -155,6 +155,7 @@ class Leaf<T> {
   static create = createLeaf;
   static define = defineLeaf;
   value: T;
+  selector?: <R>(source: Observable<T>) => Observable<R>;
   read(): T;
   write(value: T): void;
   subject(): BehaviorSubject<T>;
@@ -182,6 +183,18 @@ for an object, which corresponds with that leaf:
 Generally, you should consider using `read()` or `write()` instead of getting or
 setting this property.
 
+#### class Leaf: selector
+
+`selector` determines whether the leaf should react when a new value writes to
+it.
+
+By default, leaves react only when a different value writes to them. You can
+change this behavior by setting this property.
+
+Note that setting this property has no effect if the leaf has been read by twigs
+or branches. Setting this property just after the leaf is created is the
+recommended way.
+
 #### class Leaf: read()
 
 `read()` returns `value`. Additionally, calling `read()` inside a `handler`
@@ -191,7 +204,8 @@ function, which must be a twig or an **unfrozen** branch.
 #### class Leaf: write()
 
 `write()` sets `value` property to a new value. It causes the leaf to react if
-this new value differs from the old one.
+this new value differs from the old one (To change this behavior, see
+[selector](#class-leaf-selector)).
 
 #### class Leaf: subject()
 
@@ -274,10 +288,15 @@ function, which must be a twig or an **unfrozen** branch.
 
 ```typescript
 function createBranch(handler?: (branch: Branch) => void): Branch;
+function createBranch(
+  scheduler?: Scheduler,
+  handler?: (branch: Branch) => void
+): Branch;
 
 class Branch {
   static create = createBranch;
   handler?: (branch: Branch) => void;
+  scheduler?: Scheduler;
   run(): void;
   stop(): void;
   dispose(): void;
@@ -293,11 +312,18 @@ class Branch {
 
 #### function createBranch()
 
-Creates a branch with a handler.
+Creates a branch with a handler and/or a scheduler.
+
+Schedulers are used to change the way how branches schedule when they react.
 
 #### class Branch: handler
 
 `handler` is a data property, no magic happen when you get or set this property.
+
+#### class Branch: scheduler
+
+`scheduler` is a data property, no magic happen when you get or set this
+property.
 
 #### class Branch: run()
 
@@ -364,6 +390,27 @@ branch restarts or stops or disposes.
 
 `setTimeout()` should only be called inside the `handler` function.
 
+### class Scheduler
+
+```typescript
+type ScheduleFunc = (callback: (...args: any[]) => void) => void;
+
+function createScheduler(schedule?: ScheduleFunc): Scheduler;
+
+class Scheduler {
+  static create: typeof createScheduler;
+  static default: Scheduler;
+  flush(): void;
+  schedule(callback: (...args: any[]) => void): void;
+  scheduleBranch(branch: Branch): void;
+  unscheduleBranch(branch: Branch): void;
+}
+```
+
+#### function createScheduler()
+
+Create a scheduler with a schedule function.
+
 ### class Signal
 
 ```typescript
@@ -376,10 +423,15 @@ class Signal {
 }
 ```
 
-`createSignal()` creates a signal from an observable. To connect a signal with
-twigs or branches, use `connectSignal()` inside twigs' or branches' `handler`
-function. Any value emission from this signal causes those twigs or branches to
-react (twigs become dirty, branches schedule to run again).
+#### function createSignal()
+
+Create a signal from an observable.
+
+#### function connectSignal()
+
+Connect a signal. `connectSignal()` should only be called inside twigs' or
+branches' `handler` function. Any value emission from this signal causes those
+twigs or branches to react (twigs become dirty, branches schedule to run again).
 
 ## License
 
