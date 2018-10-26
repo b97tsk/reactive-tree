@@ -340,12 +340,20 @@ export class Branch {
         }
         return subscription.add(teardown)
     }
-    setInterval(callback: (...args: any[]) => void, interval: number) {
-        const id = setInterval(callback, interval)
+    setInterval(
+        callback: (...args: any[]) => void,
+        interval: number,
+        ...args: any[]
+    ) {
+        const id = setInterval(callback, interval, ...args)
         return this.addTeardown(() => clearInterval(id))
     }
-    setTimeout(callback: (...args: any[]) => void, timeout: number) {
-        const id = setTimeout(callback, timeout)
+    setTimeout(
+        callback: (...args: any[]) => void,
+        timeout: number,
+        ...args: any[]
+    ) {
+        const id = setTimeout(callback, timeout, ...args)
         return this.addTeardown(() => clearTimeout(id))
     }
 }
