@@ -228,14 +228,14 @@ also cancels all those subscriptions.
 ### class Twig
 
 ```typescript
-function createTwig<T>(handler?: () => T): Twig<T>;
-function defineTwig<T>(obj: any, prop: keyof any, handler?: () => T): Twig<T>;
+function createTwig<T>(handler: () => T): Twig<T>;
+function defineTwig<T>(obj: any, prop: keyof any, handler: () => T): Twig<T>;
 
 class Twig<T> {
   static create = createTwig;
   static define = defineTwig;
   dirty: boolean;
-  handler?: () => T;
+  handler: () => T;
   readonly value: T;
   read(): T;
   notify(): void;
@@ -269,8 +269,6 @@ for an object, which corresponds with that twig:
 
 If `dirty` is true, a new value returned by `handler` function will be cached
 and used instead. And then `dirty` is set to false.
-
-If `handler` is not set, an error throws.
 
 Generally, you should consider using `read()` instead of getting this property.
 
@@ -324,6 +322,11 @@ Schedulers are used to change the way how branches schedule when they react.
 
 `scheduler` is a data property, no magic happen when you get or set this
 property.
+
+If you directly set `scheduler` (not by `createBranch()`), you may want to call
+`run()` or `schedule()` to take effect immediately.
+
+If `scheduler` is not set, `Scheduler.default` is used.
 
 #### class Branch: run()
 
