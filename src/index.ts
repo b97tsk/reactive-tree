@@ -358,7 +358,7 @@ export class Branch {
     }
 }
 
-export type ScheduleFunc = (callback: (...args: any[]) => void) => void
+export type ScheduleFunc = (callback: () => void) => void
 
 export function createScheduler(schedule?: ScheduleFunc): Scheduler {
     return new Scheduler(schedule)
@@ -391,7 +391,7 @@ export class Scheduler {
         }
         this._runningBranch = this._runningBranches = null
     }
-    schedule(callback: (...args: any[]) => void) {
+    schedule(callback: () => void) {
         setTimeout(callback, 0)
     }
     scheduleBranch(branch: Branch) {
