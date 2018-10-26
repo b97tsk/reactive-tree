@@ -167,14 +167,14 @@ export class Leaf<T> implements Signal {
     }
 }
 
-export function createTwig<T>(handler?: () => T): Twig<T> {
+export function createTwig<T>(handler: () => T): Twig<T> {
     return new Twig(handler)
 }
 
 export function defineTwig<T>(
     obj: any,
     prop: keyof any,
-    handler?: () => T
+    handler: () => T
 ): Twig<T> {
     const twig = new Twig(handler)
     Object.defineProperty(obj, prop, {
@@ -199,7 +199,7 @@ export class Twig<T> implements Signal {
     }
 
     dirty = true
-    handler?: () => T
+    handler: () => T
 
     /** @internal */ _value?: T
     /** @internal */ _signals?: Signal[]
@@ -208,7 +208,7 @@ export class Twig<T> implements Signal {
     /** @internal */ _subscription?: Subscription | null
 
     /** @internal */
-    constructor(handler?: () => T) {
+    constructor(handler: () => T) {
         this.handler = handler
     }
 
@@ -460,9 +460,6 @@ function runTwig<T>(twig: Twig<T>) {
 
     try {
         const { handler } = twig
-        if (handler == null) {
-            throw new Error('handler is not set')
-        }
         twig._value = handler()
         twig.dirty = false
     } finally {
