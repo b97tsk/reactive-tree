@@ -91,7 +91,7 @@ leaf.write("kitty");
 //   Hello, kitty.
 ```
 
-Basically, this example illustrates how a branch reacts when any of reactive
+Basically, this example illustrates how a branch reacts whenever any of reactive
 properties inside its `handler` function changes. Things you should know that:
 
 - `createBranch()` immediately calls its sole argument, the `handler` function,
@@ -178,15 +178,14 @@ for an object, which corresponds with that leaf:
 
 #### class Leaf: value
 
-`value` is a data property, no magic happen when you get or set this property.
+Get or set the `value`.
 
 Generally, you should consider using `read()` or `write()` instead of getting or
 setting this property.
 
 #### class Leaf: selector
 
-`selector` determines whether the leaf should react when a new value writes to
-it.
+Determine whether the leaf should react when a new value writes to it.
 
 By default, leaves react only when a different value writes to them. You can
 change this behavior by setting this property.
@@ -203,27 +202,27 @@ function, which must be a twig or an **unfrozen** branch.
 
 #### class Leaf: write()
 
-`write()` sets `value` property to a new value. It causes the leaf to react if
-this new value differs from the old one (To change this behavior, see
+Set `value` property to a new value. It also causes the leaf to react if this
+new value differs from the old one (To change this behavior, see
 [selector](#class-leaf-selector)).
 
 #### class Leaf: subject()
 
-`subject()` creates an RxJS BehaviorSubject for the leaf and returns it.
-Subsequent calls return the same one.
+Create an RxJS BehaviorSubject for the leaf and returns it. Subsequent calls
+return the same one.
 
 The subject responds to `write()` and `subscribe()`.
 
 #### class Leaf: subscribe()
 
-`subscribe()` subscribes an RxJS Observable and returns an RxJS Subscription. A
-`write()` cancels this subscription. Each value emitted by this observable is
-written to the leaf, like `write()` but without canceling this subscription.
+Subscribe an RxJS Observable and returns an RxJS Subscription. A `write()`
+cancels this subscription. Each value emitted by this observable is written to
+the leaf, like `write()` but without canceling this subscription.
 
 #### class Leaf: unsubscribe()
 
-`unsubscribe()` cancels all subscriptions created by `subscribe()`. A `write()`
-also cancels all those subscriptions.
+Cancel all subscriptions created by `subscribe()`. A `write()` also cancels all
+those subscriptions.
 
 ### class Twig
 
@@ -255,17 +254,16 @@ for an object, which corresponds with that twig:
 
 #### class Twig: dirty
 
-`dirty` indicates whether the twig should update the cached value.
-
-`dirty` is a data property, no magic happen when you get or set this property.
+Indicate whether the twig should update the cached value.
 
 #### class Twig: handler
 
-`handler` is a data property, no magic happen when you get or set this property.
+Get or set the `handler`. If set, you may also want to set `dirty` to true and
+make a call to `notify()`.
 
 #### class Twig: value
 
-`value` returns the cached value computed from `handler` function.
+Get the cached value computed from `handler` function.
 
 If `dirty` is true, a new value returned by `handler` function will be cached
 and used instead. And then `dirty` is set to false.
@@ -280,7 +278,7 @@ function, which must be a twig or an **unfrozen** branch.
 
 #### class Twig: notify()
 
-`notify()` forces the twig to react.
+Force the twig to react.
 
 ### class Branch
 
@@ -320,84 +318,83 @@ class Branch {
 
 Creates a branch with a handler and/or a scheduler.
 
+If 'scheduler' is not specified, but the parent branch has one, that one will be
+used. That is to say, inner branches share the same scheduler from their parent
+branch, if their `scheduler` are not set.
+
 Schedulers are used to change the way how branches schedule when they react.
 
 #### class Branch: handler
 
-`handler` is a data property, no magic happen when you get or set this property.
+Get or set the `handler`. If set, you need to call `run()` or `schedule()` to
+take effect.
 
 #### class Branch: scheduler
 
-`scheduler` is a data property, no magic happen when you get or set this
-property.
-
-If you directly set `scheduler` (not by `createBranch()`), you may want to call
-`run()` or `schedule()` to take effect immediately.
+Get or set the `scheduler`. If set, you need to call `run()` or `schedule()` to
+take effect.
 
 If `scheduler` is not set, `Scheduler.default` is used.
 
 #### class Branch: run()
 
-`run()` forces the branch to restart [its procedure](#branches) immediately.
+Force the branch to restart [its procedure](#branches) immediately.
 
 An error throws if `run()` is called inside the `handler` function.
 
 #### class Branch: stop()
 
-`stop()` stops the branch.
+Stop the branch.
 
 #### class Branch: dispose()
 
-`dispose()` removes the branch permanently.
+Dispose the branch.
 
 You can `run()` or `schedule()` a stopped branch again, but not a disposed
 branch.
 
 #### class Branch: freeze()
 
-`freeze()` freezes the branch. Subsequent reactive properties will **NOT** be
-collected by the branch.
+Freeze the branch. Subsequent reactive properties will **NOT** be collected by
+the branch.
 
 `freeze()` should only be called inside the `handler` function.
 
 #### class Branch: unfreeze()
 
-`unfreeze()` unfreezes the branch, ready to collect subsequent reactive
-properties.
+Unfreeze the branch, ready to collect subsequent reactive properties.
+
+`unfreeze()` should only be called inside the `handler` function.
 
 `unfreeze()` need not be called if there is no subsequent reactive properties
 after.
 
-`unfreeze()` should only be called inside the `handler` function.
-
 #### class Branch: schedule()
 
-`schedule()` forces the branch to restart [its procedure](#branches) **as soon
-as possible**.
+Make a schedule to restart [its procedure](#branches).
 
 #### class Branch: unschedule()
 
-`unschedule()` undoes `schedule()`.
+Undo `schedule()`.
 
 #### class Branch: addTeardown()
 
-`addTeardown()` adds something to do when the branch restarts or stops or
-disposes. This is useful if you need to undo something that is done inside the
-`handler` function.
+Add something to do when the branch restarts or stops or disposes. This is
+useful if you need to undo something that is done inside the `handler` function.
 
 `addTeardown()` should only be called inside the `handler` function.
 
 #### class Branch: setInterval()
 
-`setInterval()` starts a timer. `clearInterval()` is automatically called when
-the branch restarts or stops or disposes.
+Start a timer. `clearInterval()` is automatically called when the branch
+restarts or stops or disposes.
 
 `setInterval()` should only be called inside the `handler` function.
 
 #### class Branch: setTimeout()
 
-`setTimeout()` starts a timer. `clearTimeout()` is automatically called when the
-branch restarts or stops or disposes.
+Start a timer. `clearTimeout()` is automatically called when the branch restarts
+or stops or disposes.
 
 `setTimeout()` should only be called inside the `handler` function.
 
