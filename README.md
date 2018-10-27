@@ -303,8 +303,16 @@ class Branch {
   schedule(): void;
   unschedule(): void;
   addTeardown(teardown: TeardownLogic): void;
-  setInterval(callback: (...args: any[]) => void, interval: number): void;
-  setTimeout(callback: (...args: any[]) => void, timeout: number): void;
+  setInterval(
+    callback: (...args: any[]) => void,
+    interval: number,
+    ...args: any[]
+  ): void;
+  setTimeout(
+    callback: (...args: any[]) => void,
+    timeout: number,
+    ...args: any[]
+  ): void;
 }
 ```
 
@@ -396,7 +404,7 @@ branch restarts or stops or disposes.
 ### class Scheduler
 
 ```typescript
-type ScheduleFunc = (callback: (...args: any[]) => void) => void;
+type ScheduleFunc = (callback: () => void) => void;
 
 function createScheduler(schedule?: ScheduleFunc): Scheduler;
 
@@ -404,7 +412,7 @@ class Scheduler {
   static create: typeof createScheduler;
   static default: Scheduler;
   flush(): void;
-  schedule(callback: (...args: any[]) => void): void;
+  schedule(callback: () => void): void;
   scheduleBranch(branch: Branch): void;
   unscheduleBranch(branch: Branch): void;
 }
