@@ -1,8 +1,5 @@
 import { reportError } from './reportError'
 
-type ArgsType<T> = T extends (...args: infer U) => any ? U : never
-type ReturnType<T> = T extends (...args: any[]) => infer R ? R : never
-
 export interface TryCatchResult<T> {
     readonly val: T
     readonly err: any
@@ -25,7 +22,7 @@ function tryCatcher(this: any) {
 
 export function tryCatch<T extends (...args: any[]) => any>(
     fn: T
-): (...args: ArgsType<T>) => TryCatchResult<ReturnType<T>> {
+): (...args: Parameters<T>) => TryCatchResult<ReturnType<T>> {
     target = fn
     return tryCatcher as any
 }
