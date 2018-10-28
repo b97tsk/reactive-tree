@@ -68,14 +68,18 @@ export function createLeaf<T>(value: T): Leaf<T> {
 export function defineLeaf<T, K extends keyof T>(obj: T, prop: K): Leaf<T[K]>
 export function defineLeaf<T>(obj: any, prop: keyof any, value: T): Leaf<T>
 export function defineLeaf<T>(obj: any, prop: keyof any, value?: T): Leaf<T> {
-    const leaf = new Leaf(arguments.length < 3 ? obj[prop] : value)
+    if (arguments.length < 3) {
+        const leaf = new Leaf(obj[prop])
+        Object.defineProperty(obj, prop, {
+            get: () => leaf.read(),
+            set: value => leaf.write(value),
+        })
+        return leaf
+    }
+    const leaf = new Leaf(value as T)
     Object.defineProperty(obj, prop, {
-        get() {
-            return leaf.read()
-        },
-        set(value) {
-            leaf.write(value)
-        },
+        get: () => leaf.read(),
+        set: value => leaf.write(value),
         enumerable: true,
         configurable: true,
     })
@@ -159,9 +163,8 @@ export class Leaf<T> implements Signal {
     unsubscribe() {
         const subscriptionMany = this._subscriptionMany
         if (subscriptionMany) {
-            this._subscription = this._subscriptionMany = null
-            tryCatch(subscriptionMany.unsubscribe).call(subscriptionMany)
-            return
+            this._subscription = subscriptionMany
+            this._subscriptionMany = null
         }
         return unsubscribeObject(this)
     }
@@ -178,9 +181,7 @@ export function defineTwig<T>(
 ): Twig<T> {
     const twig = new Twig(handler)
     Object.defineProperty(obj, prop, {
-        get() {
-            return twig.read()
-        },
+        get: () => twig.read(),
         enumerable: true,
         configurable: true,
     })
