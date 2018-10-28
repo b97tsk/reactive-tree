@@ -8,6 +8,8 @@ import {
     createLeaf,
     createSignal,
     createTwig,
+    defineLeaf,
+    defineTwig,
     Scheduler,
 } from '.'
 
@@ -20,6 +22,15 @@ describe('Leaf', () => {
     it('createLeaf() with a value', () => {
         const leaf = createLeaf(42)
         expect(leaf.value).to.equal(42)
+    })
+    it('defineLeaf() for an object', () => {
+        const obj = { value: 42 }
+        const leaf_a = defineLeaf(obj, 'value')
+        const leaf_b = defineLeaf(obj, 'foo', 'bar')
+        expect(obj).to.have.property('value', 42)
+        expect(obj).to.have.property('foo', 'bar')
+        expect(leaf_a.value).to.equal(42)
+        expect(leaf_b.value).to.equal('bar')
     })
     it('value === read()', () => {
         const leaf = createLeaf(42)
@@ -89,6 +100,12 @@ describe('Twig', () => {
         const handler = () => 42
         const twig = createTwig(handler)
         expect(twig.handler).to.equal(handler)
+    })
+    it('defineTwig() for an object', () => {
+        const obj = {}
+        const twig = defineTwig(obj, 'foo', () => 42)
+        expect(obj).to.have.property('foo', 42)
+        expect(twig.value).to.equal(42)
     })
     it('value === read()', () => {
         const twig = createTwig(() => 42)
