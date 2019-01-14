@@ -106,10 +106,13 @@ Branches can be nested inside each other.
 ```typescript
 import { createBranch, createLeaf, defineLeaf } from "reactive-tree";
 
-const showThisBook = createLeaf(null);
+class Book {
+  constructor(public name: string) {
+    defineLeaf(this, "name");
+  }
+}
 
-const book = {};
-defineLeaf(book, "name", "How To Make Cookies");
+const showThisBook = createLeaf<Book | null>(null);
 
 createBranch(() => {
   const book = showThisBook.read();
@@ -124,6 +127,7 @@ createBranch(() => {
 });
 
 setTimeout(() => {
+  const book = new Book("How To Make Cookies");
   showThisBook.write(book);
   setTimeout(() => {
     book.name = "How To Plant A Tree";
@@ -135,10 +139,13 @@ setTimeout(() => {
 }, 2000);
 
 // Output:
+//   (2 seconds later)
 //   No book is showing.
 //   We are showing a book.
 //   Name of the book is "How To Make Cookies".
+//   (2 seconds later)
 //   Name of the book is "How To Plant A Tree".
+//   (2 seconds later)
 //   No book is showing.
 ```
 
@@ -406,8 +413,8 @@ type ScheduleFunc = (callback: () => void) => void;
 function createScheduler(schedule?: ScheduleFunc): Scheduler;
 
 class Scheduler {
-  static create: typeof createScheduler;
-  static default: Scheduler;
+  static create = createScheduler;
+  static default = new Scheduler();
   flush(): void;
   schedule(callback: () => void): void;
   scheduleBranch(branch: Branch): void;
@@ -426,8 +433,8 @@ function createSignal<T>(source: ObservableInput<T>): Signal;
 function connectSignal(signal: Signal): void;
 
 class Signal {
-  static create: typeof createSignal;
-  static connect: typeof connectSignal;
+  static create = createSignal;
+  static connect = connectSignal;
 }
 ```
 
