@@ -101,8 +101,8 @@ export class Leaf<T> implements Signal {
     /** @internal */
     get [observable](): Observable<Signal> {
         return (
-            this._signal ||
-            (this._signal = this.subject().pipe(
+            this._observable ||
+            (this._observable = this.subject().pipe(
                 this.selector || defaultSelector,
                 mapTo(this)
             ))
@@ -113,7 +113,7 @@ export class Leaf<T> implements Signal {
     selector?: <R>(source: Observable<T>) => Observable<R>
 
     /** @internal */ _subject?: BehaviorSubject<T>
-    /** @internal */ _signal?: Observable<Signal>
+    /** @internal */ _observable?: Observable<Signal>
     /** @internal */ _subscription?: Subscription | null
     /** @internal */ _subscriptionMany?: Subscription | null
 
@@ -264,7 +264,7 @@ export class Branch {
     /** @internal */ _parent?: Branch | null
     /** @internal */ _branches?: Branch[] | null
     /** @internal */ _subscription?: Subscription | null
-    /** @internal */ _teardownSubscription?: Subscription | null
+    /** @internal */ _teardowns?: Subscription | null
 
     /** @internal */
     constructor(handler?: (branch: Branch) => void) {
@@ -332,14 +332,14 @@ export class Branch {
         return unscheduleBranch(this)
     }
     addTeardown(teardown: TeardownLogic) {
-        let subscription = this._teardownSubscription
-        if (subscription == null) {
-            subscription = this._teardownSubscription = new Subscription()
+        let teardowns = this._teardowns
+        if (teardowns == null) {
+            teardowns = this._teardowns = new Subscription()
             if (!this._running || this._stopped || this._disposed) {
-                subscription.unsubscribe()
+                teardowns.unsubscribe()
             }
         }
-        return subscription.add(teardown)
+        return teardowns.add(teardown)
     }
     setInterval(
         callback: (...args: any[]) => void,
@@ -570,10 +570,10 @@ function removeAllBranches(branch: Branch) {
 }
 
 function removeAllTeardowns(branch: Branch) {
-    const subscription = branch._teardownSubscription
-    if (subscription) {
-        branch._teardownSubscription = null
-        tryCatch(subscription.unsubscribe).call(subscription)
+    const teardowns = branch._teardowns
+    if (teardowns) {
+        branch._teardowns = null
+        tryCatch(teardowns.unsubscribe).call(teardowns)
     }
 }
 
