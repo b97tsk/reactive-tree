@@ -244,6 +244,7 @@ class Twig<T> {
   handler: () => T;
   readonly value: T;
   read(): T;
+  write(value: T): void;
   notify(): void;
 }
 ```
@@ -258,6 +259,7 @@ Creates a twig with a handler, like `createTwig()`, but also defines a property
 for an object, which corresponds with that twig:
 
 - when you get this property, it returns `twig.read()`.
+- when you set this property to something, it calls `twig.write(something)`.
 
 #### class Twig: dirty
 
@@ -282,6 +284,10 @@ Generally, you should consider using `read()` instead of getting this property.
 `read()` returns `value`. Additionally, calling `read()` inside a `handler`
 function causes the twig to be collected by the owner of that `handler`
 function, which must be a twig or an **unfrozen** branch.
+
+#### class Twig: write()
+
+By default, `write()` throws an error. Overwrite this property if you need it.
 
 #### class Twig: notify()
 

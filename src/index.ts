@@ -182,6 +182,7 @@ export function defineTwig<T>(
     const twig = new Twig(handler)
     Object.defineProperty(obj, prop, {
         get: () => twig.read(),
+        set: value => twig.write(value),
         enumerable: true,
         configurable: true,
     })
@@ -222,6 +223,9 @@ export class Twig<T> implements Signal {
         connectSignal(this)
         this.dirty && runTwig(this)
         return this._value!
+    }
+    write(value: T) {
+        throw new Error('write function is not defined')
     }
     notify() {
         const subject = this._subject
