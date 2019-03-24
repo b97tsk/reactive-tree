@@ -3,7 +3,7 @@
 A simple library for reactive programming.
 
 This library may help you write your view controllers with less pain. But if you
-are working with some kind of framework, you might find nowhere to use it.
+are working with some kind of framework, you might find nowhere could use it.
 
 Requires [RxJS 6](https://github.com/ReactiveX/rxjs).
 
@@ -28,6 +28,8 @@ const leaf = createLeaf("world");
 
 console.log(`Hello, ${leaf.value}.`); // Hello, world.
 ```
+
+A second way to create a leaf is using [defineLeaf](#function-defineleaf).
 
 This example doesn't show how a leaf reacts whenever its value changes. Let's
 keep reading.
@@ -66,11 +68,14 @@ which causes the twig to become **dirty**, because the twig **reads** the leaf
 inside its `handler` function. As a result, the second `twig.value` now has a
 different value.
 
+A second way to create a twig is using [defineTwig](#function-definetwig).
+
 ### Branches
 
 A branch creates a reactive procedure: it collects reactive properties by
 calling its `handler` function; then it waits until any of those reactive
-properties reacts, it schedules to restart this procedure.
+properties reacts, it schedules to restart this procedure (by default, using
+setTimeout function).
 
 #### Example: Create a branch
 
@@ -104,7 +109,7 @@ Branches can be nested inside each other.
 ##### Example: Nesting
 
 ```typescript
-import { createBranch, createLeaf, defineLeaf } from "reactive-tree";
+import { createBranch, defineLeaf } from "reactive-tree";
 
 class Book {
   constructor(public name: string) {
@@ -112,10 +117,17 @@ class Book {
   }
 }
 
-const showThisBook = createLeaf<Book | null>(null);
+class MyApp {
+  showThisBook = null as Book | null;
+  constructor() {
+    defineLeaf(this, "showThisBook");
+  }
+}
+
+const myApp = new MyApp();
 
 createBranch(() => {
-  const book = showThisBook.read();
+  const book = myApp.showThisBook;
   if (book == null) {
     console.log("No book is showing.");
     return;
@@ -128,11 +140,11 @@ createBranch(() => {
 
 setTimeout(() => {
   const book = new Book("How To Make Cookies");
-  showThisBook.write(book);
+  myApp.showThisBook = book;
   setTimeout(() => {
     book.name = "How To Plant A Tree";
     setTimeout(() => {
-      showThisBook.write(null);
+      myApp.showThisBook = null;
       book.name = "This One Will Not Show Up";
     }, 2000);
   }, 2000);
