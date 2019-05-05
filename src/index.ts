@@ -27,6 +27,21 @@ export interface Signal {
     readonly [observable]: Observable<Signal>
 }
 
+class SignalItem implements Signal {
+    toBeRemoved?: boolean
+
+    constructor(public signal: Signal) {}
+
+    get identity() {
+        return this.signal.identity
+    }
+    get observable() {
+        return this.signal.observable
+    }
+}
+
+type SignalList = SignalItem[]
+
 export function createSignal<T>(source: ObservableInput<T>): Signal {
     const signalID = generateSignalID()
     let obs: Observable<Signal> | undefined
@@ -49,10 +64,10 @@ export function createSignal<T>(source: ObservableInput<T>): Signal {
 
 export function connectSignal(signal: Signal) {
     if (currentTwig) {
-        addSignal(currentTwig, signal)
+        addSignal(currentTwig._signals!, signal)
     }
     if (currentBranch && currentBranch.ready) {
-        addSignal(currentBranch, signal)
+        addSignal(currentBranch._signals!, signal)
     }
 }
 
@@ -204,7 +219,7 @@ export class Twig<T> implements Signal {
     handler: () => T
 
     /** @internal */ _value?: T
-    /** @internal */ _signals?: Signal[]
+    /** @internal */ _signals?: SignalList
     /** @internal */ _running?: boolean
     /** @internal */ _subject?: Subject<Signal>
     /** @internal */ _subscription?: Subscription | null
@@ -264,7 +279,7 @@ export class Branch {
     /** @internal */ _frozen?: boolean
     /** @internal */ _stopped?: boolean
     /** @internal */ _disposed?: boolean
-    /** @internal */ _signals?: Signal[]
+    /** @internal */ _signals?: SignalList
     /** @internal */ _parent?: Branch | null
     /** @internal */ _branches?: Branch[] | null
     /** @internal */ _subscription?: Subscription | null
@@ -465,17 +480,21 @@ function runTwig<T>(twig: Twig<T>) {
     currentTwig = twig
     currentBranch = null
 
-    const lastSignals = twig._signals || []
-    const latestSignals = [] as typeof lastSignals
-
-    twig._signals = latestSignals
     twig._running = true
+
+    const signals = twig._signals || (twig._signals = [])
+    const previousLength = signals.length
+    signals.forEach(markToBeRemoved)
 
     try {
         const { handler } = twig
         twig._value = handler()
         twig.dirty = false
     } finally {
+        const someAdded = previousLength !== signals.length
+        const someRemoved = removeMarkedSignals(signals)
+        const signalsChanged = someAdded || someRemoved
+
         twig._running = false
 
         currentTwig = previousTwig
@@ -483,17 +502,17 @@ function runTwig<T>(twig: Twig<T>) {
 
         // tslint:disable-next-line:label-position
         Finally: {
-            if (compareTwoArrays(lastSignals, latestSignals)) {
+            if (!signalsChanged) {
                 break Finally
             }
 
             unsubscribeObject(twig)
 
-            if (latestSignals.length === 0) {
+            if (signals.length === 0) {
                 break Finally
             }
 
-            const obs = merge(...latestSignals.map(x => x[observable])).pipe(
+            const obs = merge(...signals.map(x => x[observable])).pipe(
                 multicast(() => twig[observable]),
                 refCount()
             )
@@ -513,10 +532,6 @@ function runBranch(branch: Branch) {
     const previousBranch = currentBranch
     currentBranch = branch
 
-    const lastSignals = branch._signals || []
-    const latestSignals = [] as typeof lastSignals
-
-    branch._signals = latestSignals
     branch._running = true
     branch._frozen = false
     branch._stopped = false
@@ -524,10 +539,18 @@ function runBranch(branch: Branch) {
     removeAllBranches(branch)
     removeAllTeardowns(branch)
 
+    const signals = branch._signals || (branch._signals = [])
+    const previousLength = signals.length
+    signals.forEach(markToBeRemoved)
+
     try {
         const { handler } = branch
         handler && handler(branch)
     } finally {
+        const someAdded = previousLength !== signals.length
+        const someRemoved = removeMarkedSignals(signals)
+        const signalsChanged = someAdded || someRemoved
+
         branch._running = false
 
         currentBranch = previousBranch
@@ -538,17 +561,17 @@ function runBranch(branch: Branch) {
                 break Finally
             }
 
-            if (compareTwoArrays(lastSignals, latestSignals)) {
+            if (!signalsChanged) {
                 break Finally
             }
 
             unsubscribeObject(branch)
 
-            if (latestSignals.length === 0) {
+            if (signals.length === 0) {
                 break Finally
             }
 
-            const obs = merge(...latestSignals.map(x => x[observable]))
+            const obs = merge(...signals.map(x => x[observable]))
 
             branch._subscription = obs.subscribe(() => scheduleBranch(branch))
         }
@@ -589,17 +612,32 @@ function unscheduleBranch(branch: Branch) {
     return (branch.scheduler || Scheduler.default).unscheduleBranch(branch)
 }
 
-function addSignal(x: { _signals?: Signal[] }, signal: Signal) {
+function addSignal(signals: SignalList, signal: Signal) {
     const signalID = signal[identity]
     const compare = (signal: Signal) => signal[identity] >= signalID
-
-    const signals = x._signals!
     const index = binarySearch(signals, compare)
-    if (signal === signals[index]) {
-        return
+    if (index < signals.length) {
+        const x = signals[index]
+        if (x.signal === signal) {
+            delete x.toBeRemoved
+            return
+        }
     }
+    signals.splice(index, 0, new SignalItem(signal))
+}
 
-    signals.splice(index, 0, signal)
+function removeMarkedSignals(signals: SignalList) {
+    const { length } = signals
+    let k = 0
+    for (const x of signals) {
+        x.toBeRemoved || (signals[k++] = x)
+    }
+    signals.length = k
+    return k < length
+}
+
+function markToBeRemoved(x: { toBeRemoved?: boolean }) {
+    x.toBeRemoved = true
 }
 
 function unsubscribeObject(x: { _subscription?: Subscription | null }) {
@@ -618,17 +656,4 @@ function binarySearch<T>(array: T[], pred: (x: T) => boolean) {
         pred(array[mi]) ? (hi = mi) : (lo = mi)
     }
     return hi
-}
-
-function compareTwoArrays<T>(a: T[], b: T[]) {
-    const { length } = a
-    if (length !== b.length) {
-        return false
-    }
-    for (let i = 0; i < length; i++) {
-        if (a[i] !== b[i]) {
-            return false
-        }
-    }
-    return true
 }
