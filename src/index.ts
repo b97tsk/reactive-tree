@@ -304,7 +304,7 @@ export class Branch {
 
     /** @internal */
     get ready() {
-        return !this._frozen && !this._stopped && !this._disposed
+        return !this._frozen && !this._stopped
     }
     get stopped() {
         return this._stopped || false
@@ -360,7 +360,7 @@ export class Branch {
         let teardowns = this._teardowns
         if (teardowns == null) {
             teardowns = this._teardowns = new Subscription()
-            if (!this._running || this._stopped || this._disposed) {
+            if (!this._running || this._stopped) {
                 teardowns.unsubscribe()
             }
         }
@@ -563,7 +563,7 @@ function runBranch(branch: Branch) {
 
         // tslint:disable-next-line:label-position
         Finally: {
-            if (branch._stopped || branch._disposed) {
+            if (branch._stopped) {
                 break Finally
             }
 
