@@ -318,6 +318,8 @@ class Branch {
   static create = createBranch;
   handler?: (branch: Branch) => void;
   scheduler?: Scheduler;
+  readonly stopped: boolean;
+  readonly disposed: boolean;
   run(): void;
   stop(): void;
   dispose(): void;
@@ -360,6 +362,14 @@ Get or set the `scheduler`. If set, you need to call `run()` or `schedule()` to
 take effect.
 
 If `scheduler` is not set, `Scheduler.default` is used.
+
+#### class Branch: stopped
+
+Check if the branch is stopped.
+
+#### class Branch: disposed
+
+Check if the branch is disposed.
 
 #### class Branch: run()
 

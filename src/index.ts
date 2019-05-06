@@ -306,6 +306,12 @@ export class Branch {
     get ready() {
         return !this._frozen && !this._stopped && !this._disposed
     }
+    get stopped() {
+        return this._stopped || false
+    }
+    get disposed() {
+        return this._disposed || false
+    }
 
     run() {
         if (this._running) {
