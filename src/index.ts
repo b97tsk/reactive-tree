@@ -476,6 +476,45 @@ export class Scheduler {
     }
 }
 
+export function reactive(target: object, propertyKey: string | symbol) {
+    Object.defineProperty(target, propertyKey, {
+        set(value: any) {
+            const leaf = createLeaf(value)
+            leaf.name = propertyKey
+            Object.defineProperty(this, propertyKey, {
+                get: () => leaf.read(),
+                set: value => leaf.write(value),
+            })
+        },
+        enumerable: true,
+        configurable: true,
+    })
+}
+
+export function computed(
+    target: object,
+    propertyKey: string | symbol,
+    descriptor: PropertyDescriptor
+): PropertyDescriptor {
+    const get = descriptor.get || descriptor.value
+    const { set, enumerable, configurable } = descriptor
+    return {
+        get() {
+            const twig = createTwig(get.bind(this))
+            twig.name = propertyKey
+            set && (twig.write = set.bind(this))
+            Object.defineProperty(this, propertyKey, {
+                get: () => twig.read(),
+                set: value => twig.write(value),
+            })
+            return twig.read()
+        },
+        set,
+        enumerable,
+        configurable,
+    }
+}
+
 const createCounter = (id: number) => () => ++id
 const generateSignalID = createCounter(0)
 const generateBranchID = createCounter(0)

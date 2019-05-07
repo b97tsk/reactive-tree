@@ -481,6 +481,27 @@ Connect a signal. `connectSignal()` should only be called inside twigs' or
 branches' `handler` function. Any value emission from this signal causes those
 twigs or branches to react (twigs become dirty, branches schedule to run again).
 
+### decorators
+
+```typescript
+function reactive(target: object, propertyKey: string | symbol): void;
+function computed(
+  target: object,
+  propertyKey: string | symbol,
+  descriptor: PropertyDescriptor
+): PropertyDescriptor;
+```
+
+#### function reactive()
+
+Add a get-setter property to a class. The first time you set a value to this
+property of an instance, a leaf is created and bound to it.
+
+#### function computed()
+
+Wrap an existing get-setter property of a class. The first time you get or set
+this property of an instance, a twig is created and bound to it.
+
 ## License
 
 MIT
