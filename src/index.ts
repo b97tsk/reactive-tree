@@ -230,17 +230,20 @@ export class Twig<T> implements Signal {
     }
 
     get value(): T {
-        this.dirty && runTwig(this)
+        this.clean()
         return this._value!
     }
 
     read(): T {
+        this.clean()
         connectSignal(this)
-        this.dirty && runTwig(this)
         return this._value!
     }
     write(value: T) {
         throw new Error('write function is not defined')
+    }
+    clean() {
+        this.dirty && runTwig(this)
     }
     notify() {
         const subject = this._subject

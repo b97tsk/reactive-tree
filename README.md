@@ -257,6 +257,7 @@ class Twig<T> {
   readonly value: T;
   read(): T;
   write(value: T): void;
+  clean(): void;
   notify(): void;
 }
 ```
@@ -300,6 +301,10 @@ function, which must be a twig or an **unfrozen** branch.
 #### class Twig: write()
 
 By default, `write()` throws an error. Overwrite this property if you need it.
+
+#### class Twig: clean()
+
+Clean the twig if it's dirty.
 
 #### class Twig: notify()
 
