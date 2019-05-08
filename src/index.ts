@@ -129,8 +129,8 @@ export class Leaf<T> implements Signal {
 
     /** @internal */ _subject?: BehaviorSubject<T>
     /** @internal */ _observable?: Observable<Signal>
-    /** @internal */ _subscription?: Subscription | null
-    /** @internal */ _subscriptionMany?: Subscription | null
+    /** @internal */ _subscription?: Subscription
+    /** @internal */ _subscriptionMany?: Subscription
 
     /** @internal */
     constructor(value: T) {
@@ -148,7 +148,7 @@ export class Leaf<T> implements Signal {
     }
     subject() {
         let subject = this._subject
-        if (subject == null) {
+        if (subject === undefined) {
             subject = this._subject = new BehaviorSubject(this.value)
             subject.subscribe(value => {
                 this.value = value
@@ -162,11 +162,11 @@ export class Leaf<T> implements Signal {
             subject ? subject.next(value) : (this.value = value)
         })
         const single = this._subscription
-        if (single == null) {
+        if (single === undefined) {
             return (this._subscription = subscription)
         }
         let subscriptionMany = this._subscriptionMany
-        if (subscriptionMany == null) {
+        if (subscriptionMany === undefined) {
             if (single.closed) {
                 return (this._subscription = subscription)
             }
@@ -179,7 +179,7 @@ export class Leaf<T> implements Signal {
         const subscriptionMany = this._subscriptionMany
         if (subscriptionMany) {
             this._subscription = subscriptionMany
-            this._subscriptionMany = null
+            this._subscriptionMany = undefined
         }
         return unsubscribeObject(this)
     }
@@ -222,7 +222,7 @@ export class Twig<T> implements Signal {
     /** @internal */ _signals?: SignalList
     /** @internal */ _running?: boolean
     /** @internal */ _subject?: Subject<Signal>
-    /** @internal */ _subscription?: Subscription | null
+    /** @internal */ _subscription?: Subscription
 
     /** @internal */
     constructor(handler: () => T) {
@@ -283,10 +283,10 @@ export class Branch {
     /** @internal */ _stopped?: boolean
     /** @internal */ _disposed?: boolean
     /** @internal */ _signals?: SignalList
-    /** @internal */ _parent?: Branch | null
-    /** @internal */ _branches?: Branch[] | null
-    /** @internal */ _subscription?: Subscription | null
-    /** @internal */ _teardowns?: Subscription | null
+    /** @internal */ _parent?: Branch
+    /** @internal */ _branches?: Branch[]
+    /** @internal */ _subscription?: Subscription
+    /** @internal */ _teardowns?: Subscription
 
     /** @internal */
     constructor(handler?: (branch: Branch) => void) {
@@ -336,7 +336,7 @@ export class Branch {
                 const index = branches.indexOf(this)
                 index > -1 && branches.splice(index, 1)
             }
-            this._parent = null
+            this._parent = undefined
         }
         this._disposed = true
         return stopBranch(this)
@@ -361,7 +361,7 @@ export class Branch {
     }
     addTeardown(teardown: TeardownLogic) {
         let teardowns = this._teardowns
-        if (teardowns == null) {
+        if (teardowns === undefined) {
             teardowns = this._teardowns = new Subscription()
             if (!this._running || this._stopped) {
                 teardowns.unsubscribe()
@@ -399,8 +399,8 @@ export class Scheduler {
 
     /** @internal */ _scheduled = false
     /** @internal */ _scheduledBranches = [] as Branch[]
-    /** @internal */ _runningBranches?: Branch[] | null
-    /** @internal */ _runningBranch?: Branch | null
+    /** @internal */ _runningBranches?: Branch[]
+    /** @internal */ _runningBranch?: Branch
 
     /** @internal */
     constructor(schedule?: ScheduleFunc) {
@@ -418,7 +418,7 @@ export class Scheduler {
             this._runningBranch = runningBranch
             tryCatch(runBranch)(runningBranch)
         }
-        this._runningBranch = this._runningBranches = null
+        this._runningBranch = this._runningBranches = undefined
     }
     schedule(callback: () => void) {
         setTimeout(callback, 0)
@@ -476,8 +476,8 @@ const createCounter = (id: number) => () => ++id
 const generateSignalID = createCounter(0)
 const generateBranchID = createCounter(0)
 
-let currentTwig = null as Twig<any> | null
-let currentBranch = null as Branch | null
+let currentTwig: Twig<any> | undefined
+let currentBranch: Branch | undefined
 
 function runTwig<T>(twig: Twig<T>) {
     if (twig._running) {
@@ -487,7 +487,7 @@ function runTwig<T>(twig: Twig<T>) {
     const previousTwig = currentTwig
     const previousBranch = currentBranch
     currentTwig = twig
-    currentBranch = null
+    currentBranch = undefined
 
     twig._running = true
 
@@ -608,7 +608,7 @@ function removeAllBranches(branch: Branch) {
 function removeAllTeardowns(branch: Branch) {
     const teardowns = branch._teardowns
     if (teardowns) {
-        branch._teardowns = null
+        branch._teardowns = undefined
         tryCatch(teardowns.unsubscribe).call(teardowns)
     }
 }
@@ -649,10 +649,10 @@ function markToBeRemoved(x: { toBeRemoved?: boolean }) {
     x.toBeRemoved = true
 }
 
-function unsubscribeObject(x: { _subscription?: Subscription | null }) {
+function unsubscribeObject(x: { _subscription?: Subscription }) {
     const subscription = x._subscription
     if (subscription) {
-        x._subscription = null
+        x._subscription = undefined
         tryCatch(subscription.unsubscribe).call(subscription)
     }
 }
