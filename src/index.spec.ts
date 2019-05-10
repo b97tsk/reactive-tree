@@ -374,10 +374,10 @@ describe('Branch', () => {
             })
         })
     })
-    it('addTeardown()', () => {
+    it('teardown()', () => {
         let value = NaN
         const branch = createBranch(branch => {
-            branch.addTeardown(() => {
+            branch.teardown(() => {
                 value = 42
             })
         })

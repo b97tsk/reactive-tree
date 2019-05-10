@@ -332,7 +332,7 @@ class Branch {
   unfreeze(): void;
   schedule(): void;
   unschedule(): void;
-  addTeardown(teardown: TeardownLogic): void;
+  teardown(x: TeardownLogic): void;
 }
 ```
 
@@ -407,12 +407,12 @@ Make a schedule to restart [its procedure](#branches).
 
 Undo `schedule()`.
 
-#### class Branch: addTeardown()
+#### class Branch: teardown()
 
 Add something to do when the branch restarts or stops or disposes. This is
 useful if you need to undo something that is done inside the `handler` function.
 
-`addTeardown()` should only be called inside the `handler` function.
+`teardown()` should only be called inside the `handler` function.
 
 ### class Scheduler
 

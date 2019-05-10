@@ -360,7 +360,7 @@ export class Branch {
         }
         return unscheduleBranch(this)
     }
-    addTeardown(teardown: TeardownLogic) {
+    teardown(x: TeardownLogic) {
         let teardowns = this._teardowns
         if (teardowns === undefined) {
             teardowns = this._teardowns = new Subscription()
@@ -368,7 +368,7 @@ export class Branch {
                 teardowns.unsubscribe()
             }
         }
-        return teardowns.add(teardown)
+        return teardowns.add(x)
     }
 }
 
