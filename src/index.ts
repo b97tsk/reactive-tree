@@ -19,13 +19,10 @@ import {
 import { endless } from './util/endless'
 import { tryCatch } from './util/tryCatch'
 
-export const identity = '@@identity'
-export const observable = '@@observable'
-
 export interface Signal {
     readonly name?: keyof any
-    readonly [identity]: number
-    readonly [observable]: Observable<Signal>
+    readonly identity: number
+    readonly observable: Observable<Signal>
 }
 
 class SignalItem implements Signal {
@@ -47,10 +44,10 @@ export function createSignal<T>(source: ObservableInput<T>): Signal {
     const signalID = generateSignalID()
     let obs: Observable<Signal> | undefined
     return {
-        get [identity]() {
+        get identity() {
             return signalID
         },
-        get [observable]() {
+        get observable() {
             return (
                 obs ||
                 (obs = from(source).pipe(
@@ -114,10 +111,10 @@ export class Leaf<T> implements Signal {
     static create = createLeaf
     static define = defineLeaf
 
-    name?: keyof any;
-    readonly [identity] = generateSignalID()
+    name?: keyof any
+    readonly identity = generateSignalID()
 
-    get [observable](): Observable<Signal> {
+    get observable(): Observable<Signal> {
         return (
             this._observable ||
             (this._observable = this.subject().pipe(
@@ -212,10 +209,10 @@ export class Twig<T> implements Signal {
     static create = createTwig
     static define = defineTwig
 
-    name?: keyof any;
-    readonly [identity] = generateSignalID()
+    name?: keyof any
+    readonly identity = generateSignalID()
 
-    get [observable]() {
+    get observable(): Observable<Signal> {
         return this._subject || (this._subject = new Subject())
     }
 
@@ -274,10 +271,10 @@ export function createBranch(
 }
 
 export class Branch {
-    static create = createBranch;
+    static create = createBranch
 
     /** @internal */
-    readonly [identity] = generateBranchID()
+    readonly identity = generateBranchID()
 
     handler?: (branch: Branch) => void
     scheduler?: Scheduler
@@ -428,11 +425,11 @@ export class Scheduler {
         setTimeout(callback, 0)
     }
     scheduleBranch(branch: Branch) {
-        const branchID = branch[identity]
-        const compare = (branch: Branch) => branch[identity] <= branchID
+        const branchID = branch.identity
+        const compare = (branch: Branch) => branch.identity <= branchID
 
         const runningBranch = this._runningBranch
-        if (runningBranch && branchID > runningBranch[identity]) {
+        if (runningBranch && branchID > runningBranch.identity) {
             const runningBranches = this._runningBranches!
             const index = binarySearch(runningBranches, compare)
             if (branch !== runningBranches[index]) {
@@ -457,8 +454,8 @@ export class Scheduler {
         tryCatch(this.schedule).call(this, this.flush.bind(this))
     }
     unscheduleBranch(branch: Branch) {
-        const branchID = branch[identity]
-        const compare = (branch: Branch) => branch[identity] <= branchID
+        const branchID = branch.identity
+        const compare = (branch: Branch) => branch.identity <= branchID
 
         const scheduledBranches = this._scheduledBranches
         const index = binarySearch(scheduledBranches, compare)
@@ -564,8 +561,8 @@ function runTwig<T>(twig: Twig<T>) {
                 break Finally
             }
 
-            const obs = merge(...signals.map(x => x[observable])).pipe(
-                multicast(() => twig[observable]),
+            const obs = merge(...signals.map(x => x.observable)).pipe(
+                multicast(() => twig.observable as Subject<Signal>),
                 refCount()
             )
 
@@ -623,7 +620,7 @@ function runBranch(branch: Branch) {
                 break Finally
             }
 
-            const obs = merge(...signals.map(x => x[observable]))
+            const obs = merge(...signals.map(x => x.observable))
 
             branch._subscription = obs.subscribe(() => scheduleBranch(branch))
         }
@@ -665,8 +662,8 @@ function unscheduleBranch(branch: Branch) {
 }
 
 function addSignal(signals: SignalList, signal: Signal) {
-    const signalID = signal[identity]
-    const compare = (signal: Signal) => signal[identity] >= signalID
+    const signalID = signal.identity
+    const compare = (signal: Signal) => signal.identity >= signalID
     const index = binarySearch(signals, compare)
     if (index < signals.length) {
         const x = signals[index]
