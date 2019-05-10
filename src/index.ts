@@ -23,6 +23,7 @@ export const identity = '@@identity'
 export const observable = '@@observable'
 
 export interface Signal {
+    readonly name?: keyof any
     readonly [identity]: number
     readonly [observable]: Observable<Signal>
 }
@@ -85,6 +86,7 @@ export function defineLeaf<T>(obj: any, prop: keyof any, value: T): Leaf<T>
 export function defineLeaf<T>(obj: any, prop: keyof any, value?: T): Leaf<T> {
     if (arguments.length < 3) {
         const leaf = new Leaf(obj[prop])
+        leaf.name = prop
         Object.defineProperty(obj, prop, {
             get: () => leaf.read(),
             set: value => leaf.write(value),
@@ -92,6 +94,7 @@ export function defineLeaf<T>(obj: any, prop: keyof any, value?: T): Leaf<T> {
         return leaf
     }
     const leaf = new Leaf(value as T)
+    leaf.name = prop
     Object.defineProperty(obj, prop, {
         get: () => leaf.read(),
         set: value => leaf.write(value),
@@ -109,11 +112,11 @@ const defaultSelector = <R>(source: Observable<R>) =>
 
 export class Leaf<T> implements Signal {
     static create = createLeaf
-    static define = defineLeaf;
+    static define = defineLeaf
 
-    /** @internal */
+    name?: keyof any;
     readonly [identity] = generateSignalID()
-    /** @internal */
+
     get [observable](): Observable<Signal> {
         return (
             this._observable ||
@@ -195,6 +198,7 @@ export function defineTwig<T>(
     handler: () => T
 ): Twig<T> {
     const twig = new Twig(handler)
+    twig.name = prop
     Object.defineProperty(obj, prop, {
         get: () => twig.read(),
         set: value => twig.write(value),
@@ -206,11 +210,11 @@ export function defineTwig<T>(
 
 export class Twig<T> implements Signal {
     static create = createTwig
-    static define = defineTwig;
+    static define = defineTwig
 
-    /** @internal */
+    name?: keyof any;
     readonly [identity] = generateSignalID()
-    /** @internal */
+
     get [observable]() {
         return this._subject || (this._subject = new Subject())
     }
