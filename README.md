@@ -333,16 +333,6 @@ class Branch {
   schedule(): void;
   unschedule(): void;
   addTeardown(teardown: TeardownLogic): void;
-  setInterval(
-    callback: (...args: any[]) => void,
-    interval: number,
-    ...args: any[]
-  ): void;
-  setTimeout(
-    callback: (...args: any[]) => void,
-    timeout: number,
-    ...args: any[]
-  ): void;
 }
 ```
 
@@ -423,20 +413,6 @@ Add something to do when the branch restarts or stops or disposes. This is
 useful if you need to undo something that is done inside the `handler` function.
 
 `addTeardown()` should only be called inside the `handler` function.
-
-#### class Branch: setInterval()
-
-Start a timer. `clearInterval()` is automatically called when the branch
-restarts or stops or disposes.
-
-`setInterval()` should only be called inside the `handler` function.
-
-#### class Branch: setTimeout()
-
-Start a timer. `clearTimeout()` is automatically called when the branch restarts
-or stops or disposes.
-
-`setTimeout()` should only be called inside the `handler` function.
 
 ### class Scheduler
 
