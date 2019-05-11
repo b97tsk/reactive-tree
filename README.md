@@ -417,15 +417,17 @@ useful if you need to undo something that is done inside the `handler` function.
 ### class Scheduler
 
 ```typescript
-type ScheduleFunc = (callback: () => void) => void;
+type ScheduleFunc = (cb: () => void) => void;
 
 function createScheduler(schedule?: ScheduleFunc): Scheduler;
 
 class Scheduler {
   static create = createScheduler;
-  static default = new Scheduler();
+  static async: Scheduler;
+  static sync: Scheduler;
+  static default = Scheduler.async;
   flush(): void;
-  schedule(callback: () => void): void;
+  schedule(cb: () => void): void;
   scheduleBranch(branch: Branch): void;
   unscheduleBranch(branch: Branch): void;
 }

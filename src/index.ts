@@ -372,7 +372,7 @@ export class Branch {
     }
 }
 
-export type ScheduleFunc = (callback: () => void) => void
+export type ScheduleFunc = (cb: () => void) => void
 
 export function createScheduler(schedule?: ScheduleFunc): Scheduler {
     return new Scheduler(schedule)
@@ -380,7 +380,9 @@ export function createScheduler(schedule?: ScheduleFunc): Scheduler {
 
 export class Scheduler {
     static create = createScheduler
-    static default = new Scheduler()
+    static async = new Scheduler()
+    static sync = new Scheduler(cb => cb())
+    static default = Scheduler.async
 
     /** @internal */ _scheduled = false
     /** @internal */ _scheduledBranches = [] as Branch[]
@@ -405,8 +407,8 @@ export class Scheduler {
         }
         this._runningBranch = this._runningBranches = undefined
     }
-    schedule(callback: () => void) {
-        setTimeout(callback, 0)
+    schedule(cb: () => void) {
+        setTimeout(cb, 0)
     }
     scheduleBranch(branch: Branch) {
         const branchID = branch.identity
