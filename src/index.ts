@@ -8,6 +8,7 @@ import {
     Subscription,
     TeardownLogic,
 } from 'rxjs'
+
 import {
     distinctUntilChanged,
     mapTo,
@@ -16,6 +17,8 @@ import {
     share,
     skip,
 } from 'rxjs/operators'
+
+import { binarySearch } from './util/binarySearch'
 import { endless } from './util/endless'
 import { tryCatch } from './util/tryCatch'
 
@@ -681,14 +684,4 @@ function unsubscribeObject(x: { _subscription?: Subscription }) {
         x._subscription = undefined
         tryCatch(subscription.unsubscribe).call(subscription)
     }
-}
-
-function binarySearch<T>(array: T[], pred: (x: T) => boolean) {
-    let lo = -1
-    let hi = array.length
-    while (1 + lo !== hi) {
-        const mi = lo + ((hi - lo) >> 1)
-        pred(array[mi]) ? (hi = mi) : (lo = mi)
-    }
-    return hi
 }
