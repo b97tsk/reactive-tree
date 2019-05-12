@@ -456,10 +456,12 @@ Create a scheduler with a schedule function.
 ```typescript
 function createSignal<T>(source: ObservableInput<T>): Signal;
 function connectSignal(signal: Signal): void;
+function collectSignals(cb: () => void): Signal[];
 
 class Signal {
   static create = createSignal;
   static connect = connectSignal;
+  static collect = collectSignals;
 }
 ```
 
@@ -472,6 +474,10 @@ Create a signal from an observable.
 Connect a signal. `connectSignal()` should only be called inside twigs' or
 branches' `handler` function. Any value emission from this signal causes those
 twigs or branches to react (twigs become dirty, branches schedule to run again).
+
+#### function collectSignals()
+
+Collect signals connected inside the callback function, return an array of them.
 
 ### decorators
 

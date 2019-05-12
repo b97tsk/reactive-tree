@@ -72,9 +72,25 @@ export function connectSignal(signal: Signal) {
     length === 0 || connectors[length - 1].connect(signal)
 }
 
+export function collectSignals(cb: () => void) {
+    const signals = [] as Signal[]
+    connectors.push({
+        connect(signal: Signal) {
+            signals.push(signal)
+        },
+    })
+    try {
+        cb()
+    } finally {
+        connectors.pop()
+    }
+    return signals
+}
+
 export class Signal {
     static create = createSignal
     static connect = connectSignal
+    static collect = collectSignals
 }
 
 export function createLeaf<T>(value: T): Leaf<T> {
