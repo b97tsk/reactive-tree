@@ -28,6 +28,10 @@ export interface Signal {
     readonly observable: Observable<Signal>
 }
 
+interface Connector {
+    connect(signal: Signal): void
+}
+
 class SignalItem implements Signal {
     toBeRemoved?: boolean
 
@@ -64,12 +68,8 @@ export function createSignal<T>(source: ObservableInput<T>): Signal {
 }
 
 export function connectSignal(signal: Signal) {
-    if (currentTwig) {
-        addSignal(currentTwig._signals!, signal)
-    }
-    if (currentBranch && currentBranch.ready) {
-        addSignal(currentBranch._signals!, signal)
-    }
+    const { length } = connectors
+    length === 0 || connectors[length - 1].connect(signal)
 }
 
 export class Signal {
@@ -244,7 +244,7 @@ export class Twig<T> implements Signal {
         return this._value!
     }
     write(value: T) {
-        throw new Error('write function is not defined')
+        throw new Error('Write on this twig is not defined.')
     }
     clean() {
         this.dirty && runTwig(this)
@@ -252,6 +252,12 @@ export class Twig<T> implements Signal {
     notify() {
         const subject = this._subject
         subject && subject.next(this)
+    }
+    connect(signal: Signal) {
+        if (!this._running) {
+            return
+        }
+        return addSignal(this._signals!, signal)
     }
 }
 
@@ -294,25 +300,26 @@ export class Branch {
 
     /** @internal */
     constructor(handler?: (branch: Branch) => void) {
-        if (currentTwig) {
-            throw new Error('creating branches on a twig is forbidden')
-        }
-        if (currentBranch) {
-            const parent = currentBranch
-            const branches = parent._branches || (parent._branches = [])
-            branches.push(this)
-            this._parent = parent
-            const { scheduler } = parent
-            scheduler && (this.scheduler || (this.scheduler = scheduler))
+        const { length } = connectors
+        if (length > 0) {
+            const parent = connectors[length - 1]
+            if (parent instanceof Branch) {
+                const branches = parent._branches || (parent._branches = [])
+                branches.push(this)
+                this._parent = parent
+                const { scheduler } = parent
+                scheduler && (this.scheduler || (this.scheduler = scheduler))
+            } else {
+                if (parent instanceof Twig) {
+                    throw new Error('Creating branches on a twig is forbidden.')
+                }
+                throw new Error('Branches can only be nested with branches.')
+            }
         }
         this.handler = handler
         handler && runBranch(this)
     }
 
-    /** @internal */
-    get ready() {
-        return !this._frozen && !this._stopped
-    }
     get stopped() {
         return this._stopped || false
     }
@@ -322,7 +329,7 @@ export class Branch {
 
     run() {
         if (this._running) {
-            throw new Error('branch is running')
+            throw new Error('The branch is running.')
         }
         return runBranch(this)
     }
@@ -362,6 +369,12 @@ export class Branch {
             return
         }
         return unscheduleBranch(this)
+    }
+    connect(signal: Signal) {
+        if (!this._running || this._frozen) {
+            return
+        }
+        return addSignal(this._signals!, signal)
     }
     teardown(x: TeardownLogic) {
         let teardowns = this._teardowns
@@ -504,19 +517,14 @@ export function computed(
 const createCounter = (id: number) => () => ++id
 const generateSignalID = createCounter(0)
 const generateBranchID = createCounter(0)
-
-let currentTwig: Twig<any> | undefined
-let currentBranch: Branch | undefined
+const connectors = [] as Connector[]
 
 function runTwig<T>(twig: Twig<T>) {
     if (twig._running) {
         return
     }
 
-    const previousTwig = currentTwig
-    const previousBranch = currentBranch
-    currentTwig = twig
-    currentBranch = undefined
+    connectors.push(twig)
 
     twig._running = true
 
@@ -535,8 +543,7 @@ function runTwig<T>(twig: Twig<T>) {
 
         twig._running = false
 
-        currentTwig = previousTwig
-        currentBranch = previousBranch
+        connectors.pop()
 
         // tslint:disable-next-line:label-position
         Finally: {
@@ -567,8 +574,7 @@ function runBranch(branch: Branch) {
         return
     }
 
-    const previousBranch = currentBranch
-    currentBranch = branch
+    connectors.push(branch)
 
     branch._running = true
     branch._frozen = false
@@ -591,7 +597,7 @@ function runBranch(branch: Branch) {
 
         branch._running = false
 
-        currentBranch = previousBranch
+        connectors.pop()
 
         // tslint:disable-next-line:label-position
         Finally: {

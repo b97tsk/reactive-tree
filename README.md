@@ -170,7 +170,7 @@ function createLeaf<T>(value: T): Leaf<T>;
 function defineLeaf<T, K extends keyof T>(obj: T, prop: K): Leaf<T[K]>;
 function defineLeaf<T>(obj: any, prop: keyof any, value: T): Leaf<T>;
 
-class Leaf<T> {
+class Leaf<T> implements Signal {
   static create = createLeaf;
   static define = defineLeaf;
   value: T;
@@ -249,7 +249,7 @@ those subscriptions.
 function createTwig<T>(handler: () => T): Twig<T>;
 function defineTwig<T>(obj: any, prop: keyof any, handler: () => T): Twig<T>;
 
-class Twig<T> {
+class Twig<T> implements Signal {
   static create = createTwig;
   static define = defineTwig;
   dirty: boolean;
@@ -259,6 +259,7 @@ class Twig<T> {
   write(value: T): void;
   clean(): void;
   notify(): void;
+  connect(signal: Signal): void;
 }
 ```
 
@@ -310,6 +311,12 @@ Clean the twig if it's dirty.
 
 Force the twig to react.
 
+#### class Twig: connect()
+
+Connect a signal with the twig.
+
+`connect()` should only be called inside the `handler` function.
+
 ### class Branch
 
 ```typescript
@@ -332,6 +339,7 @@ class Branch {
   unfreeze(): void;
   schedule(): void;
   unschedule(): void;
+  connect(signal: Signal): void;
   teardown(x: TeardownLogic): void;
 }
 ```
@@ -406,6 +414,12 @@ Make a schedule to restart [its procedure](#branches).
 #### class Branch: unschedule()
 
 Undo `schedule()`.
+
+#### class Branch: connect()
+
+Connect a signal with the branch.
+
+`connect()` should only be called inside the `handler` function.
 
 #### class Branch: teardown()
 
