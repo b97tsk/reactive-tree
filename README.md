@@ -185,12 +185,12 @@ class Leaf<T> implements Signal {
 
 #### function createLeaf()
 
-Creates a leaf with a value.
+Create a leaf with a value.
 
 #### function defineLeaf()
 
-Creates a leaf with a value, like `createLeaf()`, but also defines a property
-for an object, which corresponds with that leaf:
+Create a leaf with a value, like `createLeaf()`, but also defines a property for
+an object, which corresponds with that leaf:
 
 - when you get this property, it returns `leaf.read()`;
 - when you set this property to something, it calls `leaf.write(something)`.
@@ -265,11 +265,11 @@ class Twig<T> implements Signal {
 
 #### function createTwig()
 
-Creates a twig with a handler.
+Create a twig with a handler.
 
 #### function defineTwig()
 
-Creates a twig with a handler, like `createTwig()`, but also defines a property
+Create a twig with a handler, like `createTwig()`, but also defines a property
 for an object, which corresponds with that twig:
 
 - when you get this property, it returns `twig.read()`.
@@ -346,7 +346,7 @@ class Branch {
 
 #### function createBranch()
 
-Creates a branch with a handler and/or a scheduler.
+Create a branch with a handler and/or a scheduler.
 
 If 'scheduler' is not specified, but the parent branch has one, that one will be
 used. That is to say, inner branches share the same scheduler from their parent
@@ -409,7 +409,7 @@ after.
 
 #### class Branch: schedule()
 
-Make a schedule to restart [its procedure](#branches).
+Make a schedule to `run()`.
 
 #### class Branch: unschedule()
 
@@ -450,6 +450,22 @@ class Scheduler {
 #### function createScheduler()
 
 Create a scheduler with a schedule function.
+
+#### class Scheduler: flush()
+
+Run all branches scheduled by the scheduler.
+
+#### class Scheduler: schedule()
+
+The schedule function.
+
+#### class Scheduler: scheduleBranch()
+
+Make a schedule to run a branch.
+
+#### class Scheduler: unscheduleBranch()
+
+Undo what `scheduleBranch()` does to a branch.
 
 ### class Signal
 
