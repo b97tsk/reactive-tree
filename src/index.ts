@@ -511,8 +511,10 @@ export function computed(
     propertyKey: string | symbol,
     descriptor: PropertyDescriptor
 ): PropertyDescriptor {
-    const get = descriptor.get || descriptor.value
-    const { set, enumerable, configurable } = descriptor
+    const { get, set, enumerable, configurable } = descriptor
+    if (typeof get !== 'function') {
+        throw new Error('Expect a getter accessor.')
+    }
     return {
         get() {
             const twig = createTwig(get.bind(this))

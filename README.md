@@ -513,8 +513,8 @@ property of an instance, a leaf is created and bound to it.
 
 #### function computed()
 
-Wrap an existing get-setter property of a class. The first time you get or set
-this property of an instance, a twig is created and bound to it.
+Wrap an existing get-setter property of a class. The first time you get this
+property of an instance, a twig is created and bound to it.
 
 ## License
 
