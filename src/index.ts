@@ -499,6 +499,8 @@ export function reactive(target: object, propertyKey: string | symbol) {
             Object.defineProperty(this, propertyKey, {
                 get: () => leaf.read(),
                 set: value => leaf.write(value),
+                enumerable: true,
+                configurable: true,
             })
         },
         enumerable: true,
@@ -510,25 +512,22 @@ export function computed(
     target: object,
     propertyKey: string | symbol,
     descriptor: PropertyDescriptor
-): PropertyDescriptor {
+) {
     const { get, set, enumerable, configurable } = descriptor
     if (typeof get !== 'function') {
         throw new Error('Expect a getter accessor.')
     }
-    return {
-        get() {
-            const twig = createTwig(get.bind(this))
-            twig.name = propertyKey
-            set && (twig.write = set.bind(this))
-            Object.defineProperty(this, propertyKey, {
-                get: () => twig.read(),
-                set: value => twig.write(value),
-            })
-            return twig.read()
-        },
-        set,
-        enumerable,
-        configurable,
+    descriptor.get = function(this: any) {
+        const twig = createTwig(get.bind(this))
+        set && (twig.write = set.bind(this))
+        twig.name = propertyKey
+        Object.defineProperty(this, propertyKey, {
+            get: () => twig.read(),
+            set: value => twig.write(value),
+            enumerable,
+            configurable,
+        })
+        return twig.read()
     }
 }
 
