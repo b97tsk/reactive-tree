@@ -320,6 +320,9 @@ export class Branch {
         if (length > 0) {
             const parent = connectors[length - 1]
             if (parent instanceof Branch) {
+                if (parent._stopped) {
+                    throw new Error('The parent branch is already stopped.')
+                }
                 const branches = parent._branches || (parent._branches = [])
                 branches.push(this)
                 this._parent = parent
@@ -345,7 +348,7 @@ export class Branch {
 
     run() {
         if (this._running) {
-            throw new Error('The branch is running.')
+            throw new Error('The branch is already running.')
         }
         return runBranch(this)
     }
