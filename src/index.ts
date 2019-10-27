@@ -1,6 +1,7 @@
 import {
     from,
     merge,
+    pipe,
     BehaviorSubject,
     Observable,
     ObservableInput,
@@ -33,7 +34,7 @@ interface Connector {
 }
 
 class SignalItem implements Signal {
-    toBeRemoved?: boolean
+    discarded?: boolean
 
     constructor(public signal: Signal) {}
 
@@ -120,11 +121,10 @@ export function defineLeaf<T>(obj: any, prop: keyof any, value?: T): Leaf<T> {
     return leaf
 }
 
-const defaultSelector = <R>(source: Observable<R>) =>
-    source.pipe(
-        distinctUntilChanged(),
-        skip(1)
-    )
+const defaultSelector = pipe(
+    distinctUntilChanged(),
+    skip(1)
+)
 
 export class Leaf<T> implements Signal {
     static create = createLeaf
@@ -550,7 +550,7 @@ function runTwig<T>(twig: Twig<T>) {
 
     const signals = twig._signals || (twig._signals = [])
     const previousLength = signals.length
-    signals.forEach(markToBeRemoved)
+    signals.forEach(markDiscarded)
 
     try {
         const { handler } = twig
@@ -558,7 +558,7 @@ function runTwig<T>(twig: Twig<T>) {
         twig.dirty = false
     } finally {
         const someAdded = previousLength !== signals.length
-        const someRemoved = removeMarkedSignals(signals)
+        const someRemoved = removeDiscardedSignals(signals)
         const signalsChanged = someAdded || someRemoved
 
         twig._running = false
@@ -605,14 +605,14 @@ function runBranch(branch: Branch) {
 
     const signals = branch._signals || (branch._signals = [])
     const previousLength = signals.length
-    signals.forEach(markToBeRemoved)
+    signals.forEach(markDiscarded)
 
     try {
         const { handler } = branch
         handler && handler(branch)
     } finally {
         const someAdded = previousLength !== signals.length
-        const someRemoved = removeMarkedSignals(signals)
+        const someRemoved = removeDiscardedSignals(signals)
         const signalsChanged = someAdded || someRemoved
 
         branch._running = false
@@ -683,25 +683,25 @@ function addSignal(signals: SignalList, signal: Signal) {
     if (index < signals.length) {
         const x = signals[index]
         if (x.signal === signal) {
-            delete x.toBeRemoved
+            delete x.discarded
             return
         }
     }
     signals.splice(index, 0, new SignalItem(signal))
 }
 
-function removeMarkedSignals(signals: SignalList) {
+function removeDiscardedSignals(signals: SignalList) {
     const { length } = signals
     let k = 0
     for (const x of signals) {
-        x.toBeRemoved || (signals[k++] = x)
+        x.discarded || (signals[k++] = x)
     }
     signals.length = k
     return k < length
 }
 
-function markToBeRemoved(x: { toBeRemoved?: boolean }) {
-    x.toBeRemoved = true
+function markDiscarded(x: { discarded?: boolean }) {
+    x.discarded = true
 }
 
 function unsubscribeObject(x: { _subscription?: Subscription }) {
