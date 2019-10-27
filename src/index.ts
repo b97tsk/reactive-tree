@@ -15,12 +15,10 @@ import {
     mapTo,
     multicast,
     refCount,
-    share,
     skip,
 } from 'rxjs/operators'
 
 import { binarySearch } from './util/binarySearch'
-import { endless } from './util/endless'
 import { tryCatch } from './util/tryCatch'
 
 export interface Signal {
@@ -56,14 +54,7 @@ export function createSignal<T>(source: ObservableInput<T>): Signal {
             return signalID
         },
         get observable() {
-            return (
-                obs ||
-                (obs = from(source).pipe(
-                    endless,
-                    mapTo(this),
-                    share()
-                ))
-            )
+            return obs || (obs = from(source).pipe(mapTo(this)))
         },
     }
 }
@@ -134,6 +125,11 @@ export class Leaf<T> implements Signal {
     readonly identity = generateSignalID()
 
     get observable(): Observable<Signal> {
+        const subject = this._subject
+        if (subject && subject.isStopped) {
+            this._subject = undefined
+            this._observable = undefined
+        }
         return (
             this._observable ||
             (this._observable = this.subject().pipe(
@@ -167,11 +163,12 @@ export class Leaf<T> implements Signal {
     }
     subject() {
         let subject = this._subject
-        if (subject === undefined) {
+        if (subject === undefined || subject.isStopped) {
             subject = this._subject = new BehaviorSubject(this.value)
             subject.subscribe(value => {
                 this.value = value
             })
+            this._observable && (this._observable = undefined)
         }
         return subject
     }
@@ -232,7 +229,11 @@ export class Twig<T> implements Signal {
     readonly identity = generateSignalID()
 
     get observable(): Observable<Signal> {
-        return this._subject || (this._subject = new Subject())
+        let subject = this._subject
+        if (subject === undefined || subject.isStopped) {
+            subject = this._subject = new Subject()
+        }
+        return subject
     }
 
     dirty = true
@@ -581,10 +582,10 @@ function runTwig<T>(twig: Twig<T>) {
                 multicast(() => twig.observable as Subject<Signal>),
                 refCount()
             )
-
-            twig._subscription = obs.subscribe(() => {
+            const next = () => {
                 twig.dirty = true
-            })
+            }
+            twig._subscription = obs.subscribe(next, next, next)
         }
     }
 }
@@ -636,8 +637,8 @@ function runBranch(branch: Branch) {
             }
 
             const obs = merge(...signals.map(x => x.observable))
-
-            branch._subscription = obs.subscribe(() => scheduleBranch(branch))
+            const next = () => scheduleBranch(branch)
+            branch._subscription = obs.subscribe(next, next, next)
         }
     }
 }
