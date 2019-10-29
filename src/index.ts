@@ -314,6 +314,7 @@ export class Branch {
     /** @internal */ _branches?: Branch[]
     /** @internal */ _subscription?: Subscription
     /** @internal */ _teardowns?: Subscription
+    /** @internal */ _finalizers?: Subscription
 
     /** @internal */
     constructor(handler?: (branch: Branch) => void) {
@@ -400,11 +401,17 @@ export class Branch {
         let teardowns = this._teardowns
         if (teardowns === undefined) {
             teardowns = this._teardowns = new Subscription()
-            if (!this._running || this._stopped) {
-                teardowns.unsubscribe()
-            }
+            this._stopped && teardowns.unsubscribe()
         }
         return teardowns.add(x)
+    }
+    finalize(x: TeardownLogic) {
+        let finalizers = this._finalizers
+        if (finalizers === undefined) {
+            finalizers = this._finalizers = new Subscription()
+            this._stopped && finalizers.unsubscribe()
+        }
+        return finalizers.add(x)
     }
 }
 
@@ -651,6 +658,7 @@ function stopBranch(branch: Branch) {
     unsubscribeObject(branch)
     removeAllBranches(branch)
     removeAllTeardowns(branch)
+    removeAllFinalizers(branch)
 }
 
 function removeAllBranches(branch: Branch) {
@@ -666,6 +674,14 @@ function removeAllTeardowns(branch: Branch) {
     if (teardowns) {
         branch._teardowns = undefined
         tryCatch(teardowns.unsubscribe).call(teardowns)
+    }
+}
+
+function removeAllFinalizers(branch: Branch) {
+    const finalizers = branch._finalizers
+    if (finalizers) {
+        branch._finalizers = undefined
+        tryCatch(finalizers.unsubscribe).call(finalizers)
     }
 }
 

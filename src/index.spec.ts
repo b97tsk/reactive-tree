@@ -374,18 +374,25 @@ describe('Branch', () => {
             })
         })
     })
-    it('teardown()', () => {
+    it('teardown() and finalize()', () => {
         let value = NaN
+        let finalized = false
         const branch = createBranch(branch => {
             branch.teardown(() => {
                 value = 42
             })
         })
+        branch.finalize(() => {
+            finalized = true
+        })
         expect(value).to.be.NaN
+        expect(finalized).to.be.false
         branch.run()
         expect(value).to.equal(42)
+        expect(finalized).to.be.false
         value = NaN
         branch.stop()
         expect(value).to.equal(42)
+        expect(finalized).to.be.true
     })
 })

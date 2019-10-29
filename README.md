@@ -341,6 +341,7 @@ class Branch {
   unschedule(): void;
   connect(signal: Signal): void;
   teardown(x: TeardownLogic): void;
+  finalize(x: TeardownLogic): void;
 }
 ```
 
@@ -427,6 +428,12 @@ Add something to do when the branch restarts or stops or disposes. This is
 useful if you need to undo something that is done inside the `handler` function.
 
 `teardown()` should only be called inside the `handler` function.
+
+#### class Branch: finalize()
+
+Add something to do when the branch stops or disposes.
+
+`finalize()` should only be called outside the `handler` function.
 
 ### class Scheduler
 
