@@ -314,6 +314,7 @@ export class Branch {
     /** @internal */ _branches?: Branch[]
     /** @internal */ _subscription?: Subscription
     /** @internal */ _teardowns?: Subscription
+    /** @internal */ _finalizers?: Subscription
 
     /** @internal */
     constructor(handler?: (branch: Branch) => void) {
@@ -400,11 +401,17 @@ export class Branch {
         let teardowns = this._teardowns
         if (teardowns === undefined) {
             teardowns = this._teardowns = new Subscription()
-            if (!this._running || this._stopped) {
-                teardowns.unsubscribe()
-            }
+            this._stopped && teardowns.unsubscribe()
         }
         return teardowns.add(x)
+    }
+    finalize(x: TeardownLogic) {
+        let finalizers = this._finalizers
+        if (finalizers === undefined) {
+            finalizers = this._finalizers = new Subscription()
+            this._disposed && finalizers.unsubscribe()
+        }
+        return finalizers.add(x)
     }
 }
 
@@ -644,18 +651,24 @@ function runBranch(branch: Branch) {
 }
 
 function stopBranch(branch: Branch) {
-    const signals = branch._signals
-    signals && (signals.length = 0)
     branch._stopped = true
     unscheduleBranch(branch)
     unsubscribeObject(branch)
+    removeAllSignals(branch)
     removeAllBranches(branch)
     removeAllTeardowns(branch)
+    branch._disposed && removeAllFinalizers(branch)
+}
+
+function removeAllSignals(branch: Branch) {
+    const signals = branch._signals
+    signals && (signals.length = 0)
 }
 
 function removeAllBranches(branch: Branch) {
     const branches = branch._branches
     if (branches) {
+        branches.forEach(setDisposed)
         branches.forEach(stopBranch)
         branches.length = 0
     }
@@ -666,6 +679,14 @@ function removeAllTeardowns(branch: Branch) {
     if (teardowns) {
         branch._teardowns = undefined
         tryCatch(teardowns.unsubscribe).call(teardowns)
+    }
+}
+
+function removeAllFinalizers(branch: Branch) {
+    const finalizers = branch._finalizers
+    if (finalizers) {
+        branch._finalizers = undefined
+        tryCatch(finalizers.unsubscribe).call(finalizers)
     }
 }
 
@@ -703,6 +724,10 @@ function removeDiscardedSignals(signals: SignalList) {
 
 function setDiscarded(x: { discarded?: boolean }) {
     x.discarded = true
+}
+
+function setDisposed(x: { _disposed?: boolean }) {
+    x._disposed = true
 }
 
 function unsubscribeObject(x: { _subscription?: Subscription }) {
