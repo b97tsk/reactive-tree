@@ -22,7 +22,7 @@ import { binarySearch } from './util/binarySearch'
 import { tryCatch } from './util/tryCatch'
 
 export interface Signal {
-    readonly name?: keyof any
+    readonly name?: string | symbol
     readonly identity: number
     readonly observable: Observable<Signal>
 }
@@ -90,10 +90,18 @@ export function createLeaf<T>(value: T): Leaf<T> {
 }
 
 export function defineLeaf<T, K extends keyof T>(obj: T, prop: K): Leaf<T[K]>
-export function defineLeaf<T>(obj: any, prop: keyof any, value: T): Leaf<T>
-export function defineLeaf<T>(obj: any, prop: keyof any, value?: T): Leaf<T> {
+export function defineLeaf<T>(
+    obj: object,
+    prop: string | symbol,
+    value: T
+): Leaf<T>
+export function defineLeaf<T>(
+    obj: object,
+    prop: string | symbol,
+    value?: T
+): Leaf<T> {
     if (arguments.length < 3) {
-        const leaf = new Leaf(obj[prop])
+        const leaf = new Leaf((obj as any)[prop])
         leaf.name = prop
         Object.defineProperty(obj, prop, {
             get: () => leaf.read(),
@@ -121,7 +129,7 @@ export class Leaf<T> implements Signal {
     static create = createLeaf
     static define = defineLeaf
 
-    name?: keyof any
+    name?: string | symbol
     readonly identity = generateSignalID()
 
     get observable(): Observable<Signal> {
@@ -206,8 +214,8 @@ export function createTwig<T>(handler: () => T): Twig<T> {
 }
 
 export function defineTwig<T>(
-    obj: any,
-    prop: keyof any,
+    obj: object,
+    prop: string | symbol,
     handler: () => T
 ): Twig<T> {
     const twig = new Twig(handler)
@@ -225,7 +233,7 @@ export class Twig<T> implements Signal {
     static create = createTwig
     static define = defineTwig
 
-    name?: keyof any
+    name?: string | symbol
     readonly identity = generateSignalID()
 
     get observable(): Observable<Signal> {
