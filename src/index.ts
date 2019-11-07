@@ -392,7 +392,7 @@ export class Branch {
         return unscheduleBranch(this)
     }
     connect(signal: Signal) {
-        if (!this._running || this._frozen) {
+        if (!this._running || this._frozen || this._stopped) {
             return
         }
         return addSignal(this._signals!, signal)
