@@ -167,8 +167,15 @@ setTimeout(() => {
 
 ```typescript
 function createLeaf<T>(value: T): Leaf<T>;
-function defineLeaf<T, K extends keyof T>(obj: T, prop: K): Leaf<T[K]>;
-function defineLeaf<T>(obj: object, prop: string | symbol, value: T): Leaf<T>;
+function defineLeaf<T, K extends keyof T>(
+  target: T,
+  propertyKey: K
+): Leaf<T[K]>;
+function defineLeaf<T>(
+  target: object,
+  propertyKey: string | symbol,
+  value: T
+): Leaf<T>;
 
 class Leaf<T> implements Signal {
   static create = createLeaf;
@@ -248,8 +255,8 @@ those subscriptions.
 ```typescript
 function createTwig<T>(handler: () => T): Twig<T>;
 function defineTwig<T>(
-  obj: object,
-  prop: string | symbol,
+  target: object,
+  propertyKey: string | symbol,
   handler: () => T
 ): Twig<T>;
 

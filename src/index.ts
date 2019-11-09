@@ -89,29 +89,32 @@ export function createLeaf<T>(value: T): Leaf<T> {
     return new Leaf(value)
 }
 
-export function defineLeaf<T, K extends keyof T>(obj: T, prop: K): Leaf<T[K]>
+export function defineLeaf<T, K extends keyof T>(
+    target: T,
+    propertyKey: K
+): Leaf<T[K]>
 export function defineLeaf<T>(
-    obj: object,
-    prop: string | symbol,
+    target: object,
+    propertyKey: string | symbol,
     value: T
 ): Leaf<T>
 export function defineLeaf<T>(
-    obj: object,
-    prop: string | symbol,
+    target: object,
+    propertyKey: string | symbol,
     value?: T
 ): Leaf<T> {
     if (arguments.length < 3) {
-        const leaf = new Leaf((obj as any)[prop])
-        leaf.name = prop
-        Object.defineProperty(obj, prop, {
+        const leaf = new Leaf((target as any)[propertyKey])
+        leaf.name = propertyKey
+        Object.defineProperty(target, propertyKey, {
             get: () => leaf.read(),
             set: value => leaf.write(value),
         })
         return leaf
     }
     const leaf = new Leaf(value as T)
-    leaf.name = prop
-    Object.defineProperty(obj, prop, {
+    leaf.name = propertyKey
+    Object.defineProperty(target, propertyKey, {
         get: () => leaf.read(),
         set: value => leaf.write(value),
         enumerable: true,
@@ -214,13 +217,13 @@ export function createTwig<T>(handler: () => T): Twig<T> {
 }
 
 export function defineTwig<T>(
-    obj: object,
-    prop: string | symbol,
+    target: object,
+    propertyKey: string | symbol,
     handler: () => T
 ): Twig<T> {
     const twig = new Twig(handler)
-    twig.name = prop
-    Object.defineProperty(obj, prop, {
+    twig.name = propertyKey
+    Object.defineProperty(target, propertyKey, {
         get: () => twig.read(),
         set: value => twig.write(value),
         enumerable: true,
