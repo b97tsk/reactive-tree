@@ -2,9 +2,6 @@
 
 A simple library for reactive programming.
 
-This library may help you write your view controllers with less pain. But if you
-are working with some kind of framework, you might find nowhere could use it.
-
 Requires [RxJS 6](https://github.com/ReactiveX/rxjs).
 
 ## Installation
@@ -17,7 +14,7 @@ npm install reactive-tree
 
 ### Leaves
 
-A leaf behaves as a reactive property. It reacts whenever its value changes.
+A leaf defines a reactive state. It reacts whenever its value changes.
 
 #### Example: Create a leaf
 
@@ -36,9 +33,9 @@ keep reading.
 
 ### Twigs
 
-A twig behaves as a computed property with cache. It has a value that is
-computed from its `handler` function. It computes only when someone try to get
-its value and it's **dirty**.
+A twig defines a computed state. It has a value that is computed from its
+`handler` function. It computes only when someone try to get its value and it's
+**dirty**.
 
 A twig gets **dirty** when:
 
@@ -47,8 +44,8 @@ A twig gets **dirty** when:
   those leaves (or other twigs) reacts, or
 - its `dirty` property is set to true.
 
-A twig also behaves like a reactive property if, inside its `handler` function,
-it **reads** values from leaves (or other twigs).
+A twig also behaves like a reactive state if, inside its `handler` function, it
+**reads** values from leaves (or other twigs).
 
 #### Example: Create a twig
 
@@ -72,10 +69,9 @@ A second way to create a twig is using [defineTwig](#function-definetwig).
 
 ### Branches
 
-A branch creates a reactive procedure: it collects reactive properties by
-calling its `handler` function; then it waits until any of those reactive
-properties reacts, it schedules to restart this procedure (by default, using
-setTimeout function).
+A branch starts a reactive procedure: it collects reactive states by calling its
+`handler` function; then it waits until any of those reactive states reacts, it
+schedules to restart this procedure (by default, using setTimeout function).
 
 #### Example: Create a branch
 
@@ -97,7 +93,7 @@ leaf.write("kitty");
 ```
 
 Basically, this example illustrates how a branch reacts whenever any of reactive
-properties inside its `handler` function changes. Things you should know that:
+states inside its `handler` function changes. Things you should know that:
 
 - `createBranch()` immediately calls its sole argument, the `handler` function,
   which produces the first line of output;
@@ -128,7 +124,7 @@ const myApp = new MyApp();
 
 createBranch(() => {
   const book = myApp.showThisBook;
-  if (book == null) {
+  if (book === null) {
     console.log("No book is showing.");
     return;
   }
@@ -197,7 +193,7 @@ Create a leaf with a value.
 #### function defineLeaf()
 
 Create a leaf with a value, like `createLeaf()`, but also defines a property for
-an object, which corresponds with that leaf:
+an object, which corresponds with this leaf:
 
 - when you get this property, it returns `leaf.read()`;
 - when you set this property to something, it calls `leaf.write(something)`.
@@ -224,7 +220,7 @@ recommended way.
 
 `read()` returns `value`. Additionally, calling `read()` inside a `handler`
 function causes the leaf to be collected by the owner of that `handler`
-function, which must be a twig or an **unfrozen** branch.
+function, which must be a twig or a branch.
 
 #### class Leaf: write()
 
@@ -281,7 +277,7 @@ Create a twig with a handler.
 #### function defineTwig()
 
 Create a twig with a handler, like `createTwig()`, but also defines a property
-for an object, which corresponds with that twig:
+for an object, which corresponds with this twig:
 
 - when you get this property, it returns `twig.read()`.
 - when you set this property to something, it calls `twig.write(something)`.
@@ -292,8 +288,9 @@ Indicate whether the twig should update the cached value.
 
 #### class Twig: handler
 
-Get or set the `handler`. If set, you may also want to set `dirty` to true and
-make a call to `notify()`.
+Get or set the `handler`.
+
+If set, you may also want to set `dirty` to true and make a call to `notify()`.
 
 #### class Twig: value
 
@@ -308,7 +305,7 @@ Generally, you should consider using `read()` instead of getting this property.
 
 `read()` returns `value`. Additionally, calling `read()` inside a `handler`
 function causes the twig to be collected by the owner of that `handler`
-function, which must be a twig or an **unfrozen** branch.
+function, which must be a twig or a branch.
 
 #### class Twig: write()
 
@@ -368,23 +365,23 @@ Schedulers are used to change the way how branches schedule when they react.
 
 #### class Branch: handler
 
-Get or set the `handler`. If set, you need to call `run()` or `schedule()` to
-take effect.
+Get or set the `handler`.
+
+If set, you need to call `run()` or `schedule()` to take effect.
 
 #### class Branch: scheduler
 
-Get or set the `scheduler`. If set, you need to call `run()` or `schedule()` to
-take effect.
+Get or set the `scheduler`.
 
 If `scheduler` is not set, `Scheduler.default` is used.
 
 #### class Branch: stopped
 
-Check if the branch is stopped.
+Check if the branch stops.
 
 #### class Branch: disposed
 
-Check if the branch is disposed.
+Check if the branch disposes.
 
 #### class Branch: run()
 
@@ -400,24 +397,22 @@ Stop the branch.
 
 Dispose the branch.
 
-You can `run()` or `schedule()` a stopped branch again, but not a disposed
-branch.
+You can `run()` or `schedule()` a stopped branch again, but not a disposed one.
 
 #### class Branch: freeze()
 
-Freeze the branch. Subsequent reactive properties will **NOT** be collected by
-the branch.
+Freeze the branch. Subsequent reactive states will **NOT** be collected by the
+branch.
 
 `freeze()` should only be called inside the `handler` function.
 
 #### class Branch: unfreeze()
 
-Unfreeze the branch, ready to collect subsequent reactive properties.
+Unfreeze the branch, ready to collect subsequent reactive states.
 
 `unfreeze()` should only be called inside the `handler` function.
 
-`unfreeze()` need not be called if there is no subsequent reactive properties
-after.
+`unfreeze()` need not be called if there is no subsequent reactive states after.
 
 #### class Branch: schedule()
 
@@ -471,7 +466,7 @@ Create a scheduler with a schedule function.
 
 #### class Scheduler: flush()
 
-Run all branches scheduled by the scheduler.
+Run all branches scheduled by this scheduler.
 
 #### class Scheduler: schedule()
 
@@ -505,13 +500,13 @@ Create a signal from an observable.
 
 #### function connectSignal()
 
-Connect a signal. `connectSignal()` should only be called inside twigs' or
-branches' `handler` function. Any value emission from this signal causes those
-twigs or branches to react (twigs become dirty, branches schedule to run again).
+Connect a signal. `connectSignal()` should only be called inside a `handler`
+function (twigs' or branches'). Any emission from this signal causes those twigs
+or branches to react (twigs become dirty, branches schedule to run again).
 
 #### function collectSignals()
 
-Collect signals connected inside the callback function, return an array of them.
+Collect signals inside the callback function, return an array of them.
 
 ### decorators
 
