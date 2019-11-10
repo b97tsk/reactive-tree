@@ -442,6 +442,7 @@ export class Scheduler {
     /** @internal */ _scheduledBranches = [] as Branch[]
     /** @internal */ _runningBranches?: Branch[]
     /** @internal */ _runningBranch?: Branch
+    /** @internal */ _flush?: () => void
 
     /** @internal */
     constructor(schedule?: ScheduleFunc) {
@@ -489,9 +490,12 @@ export class Scheduler {
         if (this._scheduled) {
             return
         }
-
         this._scheduled = true
-        tryCatch(this.schedule).call(this, this.flush.bind(this))
+
+        tryCatch(this.schedule).call(
+            this,
+            this._flush || (this._flush = this.flush.bind(this))
+        )
     }
     unscheduleBranch(branch: Branch) {
         const branchID = branch.identity
