@@ -323,6 +323,7 @@ export class Branch {
     /** @internal */ _signals?: SignalList
     /** @internal */ _parent?: Branch
     /** @internal */ _branches?: Branch[]
+    /** @internal */ _scheduledBy?: Scheduler
     /** @internal */ _subscription?: Subscription
     /** @internal */ _teardowns?: Subscription
     /** @internal */ _finalizers?: Subscription
@@ -457,6 +458,9 @@ export class Scheduler {
         let runningBranch: Branch | undefined
         // tslint:disable-next-line:no-conditional-assignment
         while ((runningBranch = runningBranches.pop())) {
+            if (runningBranch._scheduledBy === this) {
+                runningBranch._scheduledBy = undefined
+            }
             this._runningBranch = runningBranch
             tryCatch(runBranch)(runningBranch)
         }
@@ -466,6 +470,11 @@ export class Scheduler {
         setTimeout(cb, 0)
     }
     scheduleBranch(branch: Branch) {
+        if (branch._scheduledBy === this) {
+            return
+        }
+        branch._scheduledBy = this
+
         const branchID = branch.identity
         const compare = (branch: Branch) => branch.identity <= branchID
 
@@ -498,6 +507,10 @@ export class Scheduler {
         )
     }
     unscheduleBranch(branch: Branch) {
+        if (branch._scheduledBy === this) {
+            branch._scheduledBy = undefined
+        }
+
         const branchID = branch.identity
         const compare = (branch: Branch) => branch.identity <= branchID
 
