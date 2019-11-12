@@ -131,9 +131,8 @@ export function defineLeaf<T>(
     return leaf
 }
 
-const defaultSelector = distinctUntilChanged()
-
 export class Leaf<T> implements Signal {
+    static defaultSelector = distinctUntilChanged()
     static create = createLeaf
     static define = defineLeaf
 
@@ -149,7 +148,7 @@ export class Leaf<T> implements Signal {
         return (
             this._observable ||
             (this._observable = this.subject().pipe(
-                this.selector || defaultSelector,
+                this.selector || Leaf.defaultSelector,
                 mapTo(this)
             ))
         )

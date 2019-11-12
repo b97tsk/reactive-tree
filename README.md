@@ -174,6 +174,7 @@ function defineLeaf<T>(
 ): Leaf<T>;
 
 class Leaf<T> implements Signal {
+  static defaultSelector = distinctUntilChanged();
   static create = createLeaf;
   static define = defineLeaf;
   value: T;
