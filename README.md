@@ -4,6 +4,8 @@ A simple library for reactive programming.
 
 Requires [RxJS 6](https://github.com/ReactiveX/rxjs).
 
+[View changelog](#changelog).
+
 ## Installation
 
 ```shell
@@ -559,6 +561,38 @@ called with the returned value and a branch that can be used to cancel
 
 `selector` can be used to determine which values, returned by `expression`,
 should pass to `effect`. By default, `Leaf.defaultSelector` is used.
+
+## Changelog
+
+- v4.0.0:
+  - Added [finalize()](#class-branch-finalize) method for branches;
+  - Added [when()](#function-when) and [whenever()](#function-whenever);
+  - Added `Leaf.defaultSelector`;
+  - Changed the type of [selector](#class-leaf-selector);
+  - Changed return type of [subject()](#class-leaf-subject) to `Subject`;
+  - Changed the implementation of [createSignal()](#function-createsignal).
+- v3.0.1 - v3.0.3:
+  - Minor fixes.
+- v3.0.0:
+  - Added [clean()](#class-twig-clean) for twigs;
+  - Added [connect()](#class-twig-connect) for twigs;
+  - Added [connect()](#class-branch-connect) for branches;
+  - Added [stopped](#class-branch-stopped) for branches;
+  - Added [disposed](#class-branch-disposed) for branches;
+  - Added [collectSignals()](#function-collectsignals);
+  - Added `Scheduler.sync` and `Scheduler.async`;
+  - Added [reactive()](#function-reactive) and [computed()](#function-computed);
+  - Renamed `addTeardown()` to [teardown()](#class-branch-teardown);
+  - Removed `setInterval()` and `setTimeout()` for branches.
+- v2.2.0:
+  - Added [write()](#class-twig-write) for twigs.
+- v2.0.1 - v2.0.3:
+  - Minor changes.
+- v2.0.0:
+  - Added class `Scheduler` and `Signal`;
+  - Added [selector](#class-leaf-selector) for leaves;
+  - Renamed `remove()` to [dispose()](#class-branch-dispose);
+  - Changed signature of [createBranch](#function-createbranch).
 
 ## License
 
