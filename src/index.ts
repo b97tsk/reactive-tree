@@ -29,6 +29,16 @@ export interface Signal {
 
 interface Connector {
     connect(signal: Signal): void
+    clean?(): void
+    dispose?(): void
+}
+
+function typeIsTwig(x: Connector): x is Twig<unknown> {
+    return typeof x.clean === 'function'
+}
+
+function typeIsBranch(x: Connector): x is Branch {
+    return typeof x.dispose === 'function'
 }
 
 class SignalItem implements Signal {
@@ -298,13 +308,16 @@ export function createBranch(
     schedulerOrHandler?: Scheduler | ((branch: Branch) => void),
     handler?: (branch: Branch) => void
 ): Branch {
-    if (schedulerOrHandler instanceof Scheduler) {
+    if (typeof schedulerOrHandler === 'function') {
+        return new Branch(schedulerOrHandler)
+    }
+    if (schedulerOrHandler) {
         const instance = Object.create(Branch.prototype)
         instance.scheduler = schedulerOrHandler
         Branch.call(instance, handler)
         return instance
     }
-    return new Branch(schedulerOrHandler || handler)
+    return new Branch(handler)
 }
 
 export class Branch {
@@ -333,7 +346,7 @@ export class Branch {
         const { length } = connectors
         if (length > 0) {
             const parent = connectors[length - 1]
-            if (parent instanceof Branch) {
+            if (typeIsBranch(parent)) {
                 if (parent._stopped) {
                     throw new Error('The parent branch is already stopped.')
                 }
@@ -343,7 +356,7 @@ export class Branch {
                 const { scheduler } = parent
                 scheduler && (this.scheduler || (this.scheduler = scheduler))
             } else {
-                if (parent instanceof Twig) {
+                if (typeIsTwig(parent)) {
                     throw new Error('Creating branches on a twig is forbidden.')
                 }
                 throw new Error('Branches can only be nested with branches.')
