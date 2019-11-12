@@ -178,7 +178,7 @@ class Leaf<T> implements Signal {
   static create = createLeaf;
   static define = defineLeaf;
   value: T;
-  selector?: <R>(source: Observable<T>) => Observable<R>;
+  selector: OperatorFunction<T, T>;
   read(): T;
   write(value: T): void;
   subject(): Subject<T>;

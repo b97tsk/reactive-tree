@@ -4,6 +4,7 @@ import {
     pipe,
     Observable,
     ObservableInput,
+    OperatorFunction,
     Subject,
     Subscription,
     TeardownLogic,
@@ -131,8 +132,10 @@ export function defineLeaf<T>(
     return leaf
 }
 
+export type Selector = <T>(source: Observable<T>) => Observable<T>
+
 export class Leaf<T> implements Signal {
-    static defaultSelector = distinctUntilChanged()
+    static defaultSelector: Selector = distinctUntilChanged()
     static create = createLeaf
     static define = defineLeaf
 
@@ -148,23 +151,30 @@ export class Leaf<T> implements Signal {
         return (
             this._observable ||
             (this._observable = this.subject().pipe(
-                this.selector || Leaf.defaultSelector,
+                this.selector,
                 mapTo(this)
             ))
         )
     }
 
     value: T
-    selector?: <R>(source: Observable<T>) => Observable<R>
 
     /** @internal */ _subject?: Subject<T>
     /** @internal */ _observable?: Observable<Signal>
+    /** @internal */ _selector?: OperatorFunction<T, T>
     /** @internal */ _subscription?: Subscription
     /** @internal */ _subscriptionMany?: Subscription
 
     /** @internal */
     constructor(value: T) {
         this.value = value
+    }
+
+    get selector() {
+        return this._selector || Leaf.defaultSelector
+    }
+    set selector(value: OperatorFunction<T, T>) {
+        this._selector = value
     }
 
     read() {
