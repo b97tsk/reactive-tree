@@ -2,7 +2,6 @@ import {
     from,
     merge,
     pipe,
-    BehaviorSubject,
     Observable,
     ObservableInput,
     Subject,
@@ -15,7 +14,6 @@ import {
     mapTo,
     multicast,
     refCount,
-    skip,
 } from 'rxjs/operators'
 
 import { binarySearch } from './util/binarySearch'
@@ -133,10 +131,7 @@ export function defineLeaf<T>(
     return leaf
 }
 
-const defaultSelector = pipe(
-    distinctUntilChanged(),
-    skip(1)
-)
+const defaultSelector = distinctUntilChanged()
 
 export class Leaf<T> implements Signal {
     static create = createLeaf
@@ -163,7 +158,7 @@ export class Leaf<T> implements Signal {
     value: T
     selector?: <R>(source: Observable<T>) => Observable<R>
 
-    /** @internal */ _subject?: BehaviorSubject<T>
+    /** @internal */ _subject?: Subject<T>
     /** @internal */ _observable?: Observable<Signal>
     /** @internal */ _subscription?: Subscription
     /** @internal */ _subscriptionMany?: Subscription
@@ -185,7 +180,7 @@ export class Leaf<T> implements Signal {
     subject() {
         let subject = this._subject
         if (subject === undefined || subject.isStopped) {
-            subject = this._subject = new BehaviorSubject(this.value)
+            subject = this._subject = new Subject()
             subject.subscribe(value => {
                 this.value = value
             })

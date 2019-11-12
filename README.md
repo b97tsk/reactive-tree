@@ -180,7 +180,7 @@ class Leaf<T> implements Signal {
   selector?: <R>(source: Observable<T>) => Observable<R>;
   read(): T;
   write(value: T): void;
-  subject(): BehaviorSubject<T>;
+  subject(): Subject<T>;
   subscribe(observable: ObservableInput<T>): Subscription;
   unsubscribe(): void;
 }
@@ -230,8 +230,8 @@ new value differs from the old one (To change this behavior, see
 
 #### class Leaf: subject()
 
-Create an RxJS BehaviorSubject for the leaf and returns it. Subsequent calls
-return the same one.
+Create an RxJS Subject for the leaf and returns it. Subsequent calls return the
+same one.
 
 The subject responds to `write()` and `subscribe()`.
 
