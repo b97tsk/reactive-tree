@@ -54,8 +54,6 @@ class SignalItem implements Signal {
     }
 }
 
-type SignalList = SignalItem[]
-
 export function createSignal<T>(source: ObservableInput<T>): Signal {
     const signalID = generateSignalID()
     let obs: Observable<Signal> | undefined
@@ -69,12 +67,12 @@ export function createSignal<T>(source: ObservableInput<T>): Signal {
     }
 }
 
-export function connectSignal(signal: Signal) {
+export function connectSignal(signal: Signal): void {
     const { length } = connectors
     length === 0 || connectors[length - 1].connect(signal)
 }
 
-export function collectSignals(cb: () => void) {
+export function collectSignals(cb: () => void): Signal[] {
     const signals = [] as Signal[]
     connectors.push({
         connect(signal: Signal) {
@@ -266,7 +264,7 @@ export class Twig<T> implements Signal {
     handler: () => T
 
     /** @internal */ _value?: T
-    /** @internal */ _signals?: SignalList
+    /** @internal */ _signals?: SignalItem[]
     /** @internal */ _running?: boolean
     /** @internal */ _subject?: Subject<Signal>
     /** @internal */ _subscription?: Subscription
@@ -338,7 +336,7 @@ export class Branch {
     /** @internal */ _frozen?: boolean
     /** @internal */ _stopped?: boolean
     /** @internal */ _disposed?: boolean
-    /** @internal */ _signals?: SignalList
+    /** @internal */ _signals?: SignalItem[]
     /** @internal */ _parent?: Branch
     /** @internal */ _branches?: Branch[]
     /** @internal */ _scheduledBy?: Scheduler
@@ -548,7 +546,7 @@ export class Scheduler {
     }
 }
 
-export function reactive(target: object, propertyKey: string | symbol) {
+export function reactive(target: object, propertyKey: string | symbol): void {
     Object.defineProperty(target, propertyKey, {
         set(value: any) {
             const leaf = createLeaf(value)
@@ -569,7 +567,7 @@ export function computed(
     target: object,
     propertyKey: string | symbol,
     descriptor: PropertyDescriptor
-) {
+): void {
     const { get, set, enumerable, configurable } = descriptor
     if (typeof get !== 'function') {
         throw new Error('Expect a getter accessor.')
@@ -774,7 +772,7 @@ function unscheduleBranch(branch: Branch) {
     return (branch.scheduler || Scheduler.default).unscheduleBranch(branch)
 }
 
-function addSignal(signals: SignalList, signal: Signal) {
+function addSignal(signals: SignalItem[], signal: Signal) {
     const signalID = signal.identity
     const compare = (signal: Signal) => signal.identity >= signalID
     const index = binarySearch(signals, compare)
@@ -788,7 +786,7 @@ function addSignal(signals: SignalList, signal: Signal) {
     signals.splice(index, 0, new SignalItem(signal))
 }
 
-function removeDiscardedSignals(signals: SignalList) {
+function removeDiscardedSignals(signals: SignalItem[]) {
     const { length } = signals
     let k = 0
     for (const x of signals) {
