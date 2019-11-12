@@ -10,6 +10,8 @@ import {
     createTwig,
     defineLeaf,
     defineTwig,
+    when,
+    whenever,
     Scheduler,
 } from '.'
 
@@ -396,5 +398,66 @@ describe('Branch', () => {
         expect(finalized).to.be.false
         branch.dispose()
         expect(finalized).to.be.true
+    })
+    it('when()', done => {
+        schedule(() => {
+            let whenTriggered = false
+            const leaf = createLeaf(0)
+            const branch = when(
+                () => leaf.read() === 2,
+                () => {
+                    whenTriggered = true
+                }
+            )
+            expect(whenTriggered).to.be.false
+            expect(branch.disposed).to.be.false
+            leaf.write(1)
+            expect(whenTriggered).to.be.false
+            expect(branch.disposed).to.be.false
+            schedule(() => {
+                expect(whenTriggered).to.be.false
+                expect(branch.disposed).to.be.false
+                leaf.write(2)
+                expect(whenTriggered).to.be.false
+                expect(branch.disposed).to.be.false
+                schedule(() => {
+                    expect(whenTriggered).to.be.true
+                    expect(branch.disposed).to.be.true
+                    done()
+                })
+            })
+        })
+    })
+    it('whenever()', done => {
+        schedule(() => {
+            const leaf = createLeaf(0)
+            let currentValue = NaN
+            const branch = whenever(
+                () => leaf.read(),
+                (value, branch) => {
+                    currentValue = value
+                    if (value === 2) {
+                        branch.dispose()
+                    }
+                }
+            )
+            expect(currentValue).to.be.NaN
+            expect(branch.disposed).to.be.false
+            leaf.write(1)
+            expect(currentValue).to.be.NaN
+            expect(branch.disposed).to.be.false
+            schedule(() => {
+                expect(currentValue).to.equal(1)
+                expect(branch.disposed).to.be.false
+                leaf.write(2)
+                expect(currentValue).to.equal(1)
+                expect(branch.disposed).to.be.false
+                schedule(() => {
+                    expect(currentValue).to.equal(2)
+                    expect(branch.disposed).to.be.true
+                    done()
+                })
+            })
+        })
     })
 })

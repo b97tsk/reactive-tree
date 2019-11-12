@@ -231,16 +231,16 @@ new value differs from the old one (To change this behavior, see
 
 #### class Leaf: subject()
 
-Create an RxJS Subject for the leaf and returns it. Subsequent calls return the
-same one.
+Create a `Subject` for the leaf and returns it. Subsequent calls return the same
+one.
 
 The subject responds to `write()` and `subscribe()`.
 
 #### class Leaf: subscribe()
 
-Subscribe an RxJS Observable and returns an RxJS Subscription. A `write()`
-cancels this subscription. Each value emitted by this observable is written to
-the leaf, like `write()` but without canceling this subscription.
+Subscribe an `Observable` and returns a `Subscription`. A `write()` cancels this
+subscription. Each value emitted by this observable is written to the leaf, like
+`write()` but without canceling this subscription.
 
 #### class Leaf: unsubscribe()
 
@@ -529,6 +529,36 @@ property of an instance, a leaf is created and bound to it.
 
 Wrap an existing get-setter property of a class. The first time you get this
 property of an instance, a twig is created and bound to it.
+
+### others
+
+```typescript
+function when(predicate: () => boolean, effect: () => void): Branch;
+function whenever<T>(
+  expression: () => T,
+  effect: (data: T, branch: Branch) => void,
+  selector?: OperatorFunction<T, T>
+): Branch;
+```
+
+#### function when()
+
+When `predicate` returns true, `efffect` is called (and only called once).
+
+To cancel `when()`, `dispose()` the returned branch. After `effect` is called,
+the returned branch will be disposed too.
+
+#### function whenever()
+
+Whenever `expression` returns a value that differs from the old one, `effect` is
+called with the returned value and a branch that can be used to cancel
+`whenever()` as parameters.
+
+`whenever()` also returns the branch that passes to `effect`. To cancel
+`whenever()`, `dispose()` the returned branch.
+
+`selector` can be used to determine which values, returned by `expression`,
+should pass to `effect`. By default, `Leaf.defaultSelector` is used.
 
 ## License
 

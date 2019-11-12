@@ -12,6 +12,7 @@ import {
 
 import {
     distinctUntilChanged,
+    map,
     mapTo,
     multicast,
     refCount,
@@ -585,6 +586,36 @@ export function computed(
         })
         return twig.read()
     }
+}
+
+export function when(predicate: () => boolean, effect: () => void): Branch {
+    const twig = new Twig(predicate)
+    return new Branch(branch => {
+        if (twig.read()) {
+            branch.dispose()
+            tryCatch(effect)()
+        }
+    })
+}
+
+export function whenever<T>(
+    expression: () => T,
+    effect: (data: T, branch: Branch) => void,
+    selector?: OperatorFunction<T, T>
+): Branch {
+    const twig = new Twig(expression)
+    const leaf = new Leaf(twig.value)
+    selector && (leaf.selector = selector)
+    leaf.subscribe(twig.observable.pipe(map(() => twig.value)))
+    let firstTime = true
+    return new Branch(branch => {
+        const data = leaf.read()
+        if (firstTime) {
+            firstTime = false
+            return
+        }
+        tryCatch(effect)(data, branch)
+    })
 }
 
 const createCounter = (id: number) => () => ++id
