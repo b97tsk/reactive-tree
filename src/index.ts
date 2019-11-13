@@ -520,8 +520,12 @@ export class Scheduler {
         )
     }
     unscheduleBranch(branch: Branch) {
-        if (branch._scheduledBy === this) {
-            branch._scheduledBy = undefined
+        switch (branch._scheduledBy) {
+            case undefined:
+                return
+            case this:
+                branch._scheduledBy = undefined
+                break
         }
 
         const branchID = branch.identity
