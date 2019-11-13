@@ -1,7 +1,6 @@
 import {
     from,
     merge,
-    pipe,
     Observable,
     ObservableInput,
     OperatorFunction,
