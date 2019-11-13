@@ -181,9 +181,9 @@ class Leaf<T> implements Signal {
   static define = defineLeaf;
   value: T;
   selector: OperatorFunction<T, T>;
+  readonly subject: Subject<T>;
   read(): T;
   write(value: T): void;
-  subject(): Subject<T>;
   subscribe(observable: ObservableInput<T>): Subscription;
   unsubscribe(): void;
 }
@@ -219,6 +219,12 @@ Note that setting this property has no effect if the leaf has been read by twigs
 or branches. Setting this property just after the leaf is created is the
 recommended way.
 
+#### class Leaf: subject
+
+Get a `Subject` for this leaf. Subsequent calls return the same one.
+
+The subject responds to `write()` and `subscribe()`.
+
 #### class Leaf: read()
 
 `read()` returns `value`. Additionally, calling `read()` inside a `handler`
@@ -230,13 +236,6 @@ function, which must be a twig or a branch.
 Set `value` property to a new value. It also causes the leaf to react if this
 new value differs from the old one (To change this behavior, see
 [selector](#class-leaf-selector)).
-
-#### class Leaf: subject()
-
-Create a `Subject` for the leaf and returns it. Subsequent calls return the same
-one.
-
-The subject responds to `write()` and `subscribe()`.
 
 #### class Leaf: subscribe()
 
@@ -568,8 +567,8 @@ should pass to `effect`. By default, `Leaf.defaultSelector` is used.
   - Added [finalize()](#class-branch-finalize) method for branches;
   - Added [when()](#function-when) and [whenever()](#function-whenever);
   - Added `Leaf.defaultSelector`;
-  - Changed the type of [selector](#class-leaf-selector);
-  - Changed return type of [subject()](#class-leaf-subject) to `Subject`;
+  - Changed the type of [selector](#class-leaf-selector) for leaves;
+  - Changed `subject()` to [subject](#class-leaf-subject) for leaves;
   - Changed the implementation of [createSignal()](#function-createsignal).
 - v3.0.1 - v3.0.3:
   - Minor fixes.

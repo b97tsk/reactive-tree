@@ -45,11 +45,11 @@ describe('Leaf', () => {
         leaf.write(42)
         expect(leaf.value).to.equal(42)
     })
-    it('write() mirrors to subject()', () => {
+    it('write() mirrors to subject', () => {
         const leaf = createLeaf(NaN)
         let value = leaf.value
         expect(value).to.be.NaN
-        leaf.subject().subscribe(x => {
+        leaf.subject.subscribe(x => {
             value = x
         })
         leaf.value = 42

@@ -142,14 +142,10 @@ export class Leaf<T> implements Signal {
     readonly identity = generateSignalID()
 
     get observable(): Observable<Signal> {
-        const subject = this._subject
-        if (subject && subject.isStopped) {
-            this._subject = undefined
-            this._observable = undefined
-        }
+        const subject = this.subject
         return (
             this._observable ||
-            (this._observable = this.subject().pipe(
+            (this._observable = subject.pipe(
                 this.selector,
                 mapTo(this)
             ))
@@ -169,6 +165,18 @@ export class Leaf<T> implements Signal {
         this.value = value
     }
 
+    get subject() {
+        let subject = this._subject
+        if (subject === undefined || subject.isStopped) {
+            subject = this._subject = new Subject()
+            subject.subscribe(value => {
+                this.value = value
+            })
+            this._observable && (this._observable = undefined)
+        }
+        return subject
+    }
+
     get selector() {
         return this._selector || Leaf.defaultSelector
     }
@@ -184,17 +192,6 @@ export class Leaf<T> implements Signal {
         this.unsubscribe()
         const subject = this._subject
         subject ? subject.next(value) : (this.value = value)
-    }
-    subject() {
-        let subject = this._subject
-        if (subject === undefined || subject.isStopped) {
-            subject = this._subject = new Subject()
-            subject.subscribe(value => {
-                this.value = value
-            })
-            this._observable && (this._observable = undefined)
-        }
-        return subject
     }
     subscribe(source: ObservableInput<T>) {
         const subscription = from(source).subscribe(value => {
