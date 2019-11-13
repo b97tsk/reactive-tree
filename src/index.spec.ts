@@ -57,16 +57,16 @@ describe('Leaf', () => {
         leaf.write(42)
         expect(value).to.equal(42)
     })
-    it('subscribe() an observable', () => {
+    it('observe() an observable', () => {
         const leaf = createLeaf(NaN)
-        leaf.subscribe(of(42))
+        leaf.observe(of(42))
         expect(leaf.value).to.equal(42)
     })
-    it('subscribe() two observables', done => {
+    it('observe() two observables', done => {
         schedule(() => {
             const leaf = createLeaf(0)
-            leaf.subscribe(of(42))
-            leaf.subscribe(of(NaN).pipe(subscribeOn(queueScheduler)))
+            leaf.observe(of(42))
+            leaf.observe(of(NaN).pipe(subscribeOn(queueScheduler)))
             expect(leaf.value).to.equal(42)
             schedule(() => {
                 expect(leaf.value).to.be.NaN
@@ -74,10 +74,10 @@ describe('Leaf', () => {
             })
         })
     })
-    it('write() cancels subscribe()', done => {
+    it('write() cancels observe()', done => {
         schedule(() => {
             const leaf = createLeaf(0)
-            leaf.subscribe(of(NaN).pipe(subscribeOn(queueScheduler)))
+            leaf.observe(of(NaN).pipe(subscribeOn(queueScheduler)))
             leaf.write(42)
             schedule(() => {
                 expect(leaf.value).to.equal(42)
@@ -85,11 +85,11 @@ describe('Leaf', () => {
             })
         })
     })
-    it('unsubscribe() cancels subscribe()', done => {
+    it('unobserve() cancels observe()', done => {
         schedule(() => {
             const leaf = createLeaf(42)
-            leaf.subscribe(of(NaN).pipe(subscribeOn(queueScheduler)))
-            leaf.unsubscribe()
+            leaf.observe(of(NaN).pipe(subscribeOn(queueScheduler)))
+            leaf.unobserve()
             schedule(() => {
                 expect(leaf.value).to.equal(42)
                 done()

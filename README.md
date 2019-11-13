@@ -184,8 +184,8 @@ class Leaf<T> implements Signal {
   readonly subject: Subject<T>;
   read(): T;
   write(value: T): void;
-  subscribe(observable: ObservableInput<T>): Subscription;
-  unsubscribe(): void;
+  observe(observable: ObservableInput<T>): Subscription;
+  unobserve(): void;
 }
 ```
 
@@ -223,7 +223,7 @@ recommended way.
 
 Get a `Subject` for this leaf. Subsequent calls return the same one.
 
-The subject responds to `write()` and `subscribe()`.
+The subject responds to `write()` and `observe()`.
 
 #### class Leaf: read()
 
@@ -237,15 +237,15 @@ Set `value` property to a new value. It also causes the leaf to react if this
 new value differs from the old one (To change this behavior, see
 [selector](#class-leaf-selector)).
 
-#### class Leaf: subscribe()
+#### class Leaf: observe()
 
 Subscribe an `Observable` and returns a `Subscription`. A `write()` cancels this
 subscription. Each value emitted by this observable is written to the leaf, like
 `write()` but without canceling this subscription.
 
-#### class Leaf: unsubscribe()
+#### class Leaf: unobserve()
 
-Cancel all subscriptions created by `subscribe()`. A `write()` also cancels all
+Cancel all subscriptions created by `observe()`. A `write()` also cancels all
 those subscriptions.
 
 ### class Twig
@@ -567,6 +567,8 @@ should pass to `effect`. By default, `Leaf.defaultSelector` is used.
   - Added [finalize()](#class-branch-finalize) method for branches;
   - Added [when()](#function-when) and [whenever()](#function-whenever);
   - Added `Leaf.defaultSelector`;
+  - Renamed `subscribe()` to [observe()](#class-leaf-observe) for leaves;
+  - Renamed `unsubscribe()` to [unobserve()](#class-leaf-unobserve) for leaves;
   - Changed the type of [selector](#class-leaf-selector) for leaves;
   - Changed `subject()` to [subject](#class-leaf-subject) for leaves;
   - Changed the implementation of [createSignal()](#function-createsignal).

@@ -188,11 +188,11 @@ export class Leaf<T> implements Signal {
         return this.value
     }
     write(value: T) {
-        this.unsubscribe()
+        this.unobserve()
         const subject = this._subject
         subject ? subject.next(value) : (this.value = value)
     }
-    subscribe(source: ObservableInput<T>) {
+    observe(source: ObservableInput<T>) {
         const subscription = from(source).subscribe(value => {
             const subject = this._subject
             subject ? subject.next(value) : (this.value = value)
@@ -211,7 +211,7 @@ export class Leaf<T> implements Signal {
         }
         return subscriptionMany.add(subscription)
     }
-    unsubscribe() {
+    unobserve() {
         const subscriptionMany = this._subscriptionMany
         if (subscriptionMany) {
             this._subscription = subscriptionMany
@@ -604,7 +604,7 @@ export function whenever<T>(
     const twig = new Twig(expression)
     const leaf = new Leaf(twig.value)
     selector && (leaf.selector = selector)
-    leaf.subscribe(twig.observable.pipe(map(() => twig.value)))
+    leaf.observe(twig.observable.pipe(map(() => twig.value)))
     let firstTime = true
     return new Branch(branch => {
         const data = leaf.read()
