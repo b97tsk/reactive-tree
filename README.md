@@ -538,7 +538,8 @@ function when(predicate: () => boolean, effect: () => void): Branch;
 function whenever<T>(
   expression: () => T,
   effect: (data: T, branch: Branch) => void,
-  selector?: OperatorFunction<T, T>
+  selector?: OperatorFunction<T, T>,
+  fireImmediately?: boolean
 ): Branch;
 ```
 
@@ -556,10 +557,13 @@ called with the returned value and a branch that can be used to cancel
 `whenever()` as parameters.
 
 `whenever()` also returns the branch that passes to `effect`. To cancel
-`whenever()`, `dispose()` the returned branch.
+`whenever()`, `dispose()` the branch.
 
 `selector` can be used to determine which values, returned by `expression`,
 should pass to `effect`. By default, `Leaf.defaultSelector` is used.
+
+If `fireImmediately` is true, `effect` will be immediately called with the first
+value returned by `expression` and the branch mentioned above as parameters.
 
 ## Changelog
 

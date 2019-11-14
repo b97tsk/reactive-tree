@@ -590,8 +590,8 @@ export function when(predicate: () => boolean, effect: () => void): Branch {
     const twig = new Twig(predicate)
     return new Branch(branch => {
         if (twig.read()) {
-            branch.dispose()
             tryCatch(effect)()
+            branch.dispose()
         }
     })
 }
@@ -599,13 +599,14 @@ export function when(predicate: () => boolean, effect: () => void): Branch {
 export function whenever<T>(
     expression: () => T,
     effect: (data: T, branch: Branch) => void,
-    selector?: OperatorFunction<T, T>
+    selector?: OperatorFunction<T, T>,
+    fireImmediately?: boolean
 ): Branch {
     const twig = new Twig(expression)
     const leaf = new Leaf(twig.value)
     selector && (leaf.selector = selector)
     leaf.observe(twig.observable.pipe(map(() => twig.value)))
-    let firstTime = true
+    let firstTime = !fireImmediately
     return new Branch(branch => {
         const data = leaf.read()
         if (firstTime) {

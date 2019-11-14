@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
 import { of, queueScheduler } from 'rxjs'
-import { subscribeOn } from 'rxjs/operators'
+import { filter, subscribeOn } from 'rxjs/operators'
 import {
     connectSignal,
     createBranch,
@@ -430,32 +430,109 @@ describe('Branch', () => {
     })
     it('whenever()', done => {
         schedule(() => {
-            const leaf = createLeaf(0)
-            let currentValue = NaN
+            let currentValue = 0
+            const leaf = createLeaf(1)
             const branch = whenever(
                 () => leaf.read(),
                 (value, branch) => {
-                    currentValue = value
-                    if (value === 2) {
+                    currentValue += value
+                    if (value === 3) {
                         branch.dispose()
                     }
                 }
             )
-            expect(currentValue).to.be.NaN
+            expect(currentValue).to.equal(0)
             expect(branch.disposed).to.be.false
-            leaf.write(1)
-            expect(currentValue).to.be.NaN
+            leaf.write(2)
+            expect(currentValue).to.equal(0)
             expect(branch.disposed).to.be.false
             schedule(() => {
-                expect(currentValue).to.equal(1)
+                expect(currentValue).to.equal(2)
                 expect(branch.disposed).to.be.false
-                leaf.write(2)
-                expect(currentValue).to.equal(1)
+                leaf.write(3)
+                expect(currentValue).to.equal(2)
                 expect(branch.disposed).to.be.false
                 schedule(() => {
-                    expect(currentValue).to.equal(2)
+                    expect(currentValue).to.equal(5)
                     expect(branch.disposed).to.be.true
                     done()
+                })
+            })
+        })
+    })
+    it('whenever() with fireImmediately', done => {
+        schedule(() => {
+            let currentValue = 0
+            const leaf = createLeaf(1)
+            const branch = whenever(
+                () => leaf.read(),
+                (value, branch) => {
+                    currentValue += value
+                    if (value === 3) {
+                        branch.dispose()
+                    }
+                },
+                undefined,
+                true
+            )
+            expect(currentValue).to.equal(1)
+            expect(branch.disposed).to.be.false
+            leaf.write(2)
+            expect(currentValue).to.equal(1)
+            expect(branch.disposed).to.be.false
+            schedule(() => {
+                expect(currentValue).to.equal(3)
+                expect(branch.disposed).to.be.false
+                leaf.write(3)
+                expect(currentValue).to.equal(3)
+                expect(branch.disposed).to.be.false
+                schedule(() => {
+                    expect(currentValue).to.equal(6)
+                    expect(branch.disposed).to.be.true
+                    done()
+                })
+            })
+        })
+    })
+    it('whenever() with custom selector', done => {
+        schedule(() => {
+            let currentValue = 0
+            const leaf = createLeaf(1)
+            const branch = whenever(
+                () => leaf.read(),
+                (value, branch) => {
+                    currentValue += value
+                    if (value === 4) {
+                        branch.dispose()
+                    }
+                },
+                filter(x => x % 2 === 0),
+                true
+            )
+            // The selector does not apply to the first value.
+            expect(currentValue).to.equal(1)
+            expect(branch.disposed).to.be.false
+            leaf.write(2)
+            expect(currentValue).to.equal(1)
+            expect(branch.disposed).to.be.false
+            schedule(() => {
+                expect(currentValue).to.equal(3)
+                expect(branch.disposed).to.be.false
+                leaf.write(3)
+                expect(currentValue).to.equal(3)
+                expect(branch.disposed).to.be.false
+                schedule(() => {
+                    // Value 3 gets filtered out.
+                    expect(currentValue).to.equal(3)
+                    expect(branch.disposed).to.be.false
+                    leaf.write(4)
+                    expect(currentValue).to.equal(3)
+                    expect(branch.disposed).to.be.false
+                    schedule(() => {
+                        expect(currentValue).to.equal(7)
+                        expect(branch.disposed).to.be.true
+                        done()
+                    })
                 })
             })
         })
