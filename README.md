@@ -4,7 +4,7 @@ A simple library for reactive programming.
 
 Requires [RxJS 6](https://github.com/ReactiveX/rxjs).
 
-[View changelog](#changelog).
+[Link to Changelog](#changelog).
 
 ## Installation
 
@@ -28,10 +28,12 @@ const leaf = createLeaf("world");
 console.log(`Hello, ${leaf.value}.`); // Hello, world.
 ```
 
-A second way to create a leaf is using [defineLeaf](#function-defineleaf).
+A second way to create a leaf is using [`defineLeaf()`](#function-defineleaf).
 
 This example doesn't show how a leaf reacts whenever its value changes. Let's
 keep reading.
+
+---
 
 ### Twigs
 
@@ -67,13 +69,15 @@ which causes the twig to become **dirty**, because the twig **reads** the leaf
 inside its `handler` function. As a result, the second `twig.value` now has a
 different value.
 
-A second way to create a twig is using [defineTwig](#function-definetwig).
+A second way to create a twig is using [`defineTwig()`](#function-definetwig).
+
+---
 
 ### Branches
 
 A branch starts a reactive procedure: it collects reactive states by calling its
 `handler` function; then it waits until any of those reactive states reacts, it
-schedules to restart this procedure (by default, using setTimeout function).
+schedules to restart this procedure (by default, using `setTimeout` function).
 
 #### Example: Create a branch
 
@@ -235,7 +239,7 @@ function, which must be a twig or a branch.
 
 Set `value` property to a new value. It also causes the leaf to react if this
 new value differs from the old one (To change this behavior, see
-[selector](#class-leaf-selector)).
+[`selector`](#class-leaf-selector)).
 
 #### class Leaf: observe()
 
@@ -247,6 +251,8 @@ subscription. Each value emitted by this observable is written to the leaf, like
 
 Cancel all subscriptions created by `observe()`. A `write()` also cancels all
 those subscriptions.
+
+---
 
 ### class Twig
 
@@ -327,6 +333,8 @@ Connect a signal with the twig.
 
 `connect()` should only be called inside the `handler` function.
 
+---
+
 ### class Branch
 
 ```typescript
@@ -359,7 +367,7 @@ class Branch {
 
 Create a branch with a handler and/or a scheduler.
 
-If 'scheduler' is not specified, but the parent branch has one, that one will be
+If `scheduler` is not specified, but the parent branch has one, that one will be
 used. That is to say, inner branches share the same scheduler from their parent
 branch, if their `scheduler` are not set.
 
@@ -443,6 +451,8 @@ Add something to do when the branch disposes.
 
 `finalize()` should only be called outside the `handler` function.
 
+---
+
 ### class Scheduler
 
 ```typescript
@@ -482,6 +492,8 @@ Make a schedule to run a branch.
 
 Undo what `scheduleBranch()` does to a branch.
 
+---
+
 ### class Signal
 
 ```typescript
@@ -510,7 +522,9 @@ or branches to react (twigs become dirty, branches schedule to run again).
 
 Collect signals inside the callback function, return an array of them.
 
-### decorators
+---
+
+### Decorators
 
 ```typescript
 function reactive(target: object, propertyKey: string | symbol): void;
@@ -531,7 +545,9 @@ property of an instance, a leaf is created and bound to it.
 Wrap an existing get-setter property of a class. The first time you get this
 property of an instance, a twig is created and bound to it.
 
-### others
+---
+
+### Others
 
 ```typescript
 function when(predicate: () => boolean, effect: () => void): Branch;
@@ -568,36 +584,38 @@ value returned by `expression` and the branch mentioned above as parameters.
 ## Changelog
 
 - v4.0.0:
-  - Added [finalize()](#class-branch-finalize) method for branches;
-  - Added [when()](#function-when) and [whenever()](#function-whenever);
+  - Added [`finalize()`](#class-branch-finalize) method for branches;
+  - Added [`when()`](#function-when) and [`whenever()`](#function-whenever);
   - Added `Leaf.defaultSelector`;
-  - Renamed `subscribe()` to [observe()](#class-leaf-observe) for leaves;
-  - Renamed `unsubscribe()` to [unobserve()](#class-leaf-unobserve) for leaves;
-  - Changed the type of [selector](#class-leaf-selector) for leaves;
-  - Changed `subject()` to [subject](#class-leaf-subject) for leaves;
-  - Changed the implementation of [createSignal()](#function-createsignal).
+  - Renamed `subscribe()` to [`observe()`](#class-leaf-observe) for leaves;
+  - Renamed `unsubscribe()` to [`unobserve()`](#class-leaf-unobserve) for
+    leaves;
+  - Changed the type of [`selector`](#class-leaf-selector) for leaves;
+  - Changed `subject()` to [`subject`](#class-leaf-subject) for leaves;
+  - Changed the implementation of [`createSignal()`](#function-createsignal).
 - v3.0.1 - v3.0.3:
   - Minor fixes.
 - v3.0.0:
-  - Added [clean()](#class-twig-clean) for twigs;
-  - Added [connect()](#class-twig-connect) for twigs;
-  - Added [connect()](#class-branch-connect) for branches;
-  - Added [stopped](#class-branch-stopped) for branches;
-  - Added [disposed](#class-branch-disposed) for branches;
-  - Added [collectSignals()](#function-collectsignals);
+  - Added [`clean()`](#class-twig-clean) for twigs;
+  - Added [`connect()`](#class-twig-connect) for twigs;
+  - Added [`connect()`](#class-branch-connect) for branches;
+  - Added [`stopped`](#class-branch-stopped) for branches;
+  - Added [`disposed`](#class-branch-disposed) for branches;
+  - Added [`collectSignals()`](#function-collectsignals);
   - Added `Scheduler.sync` and `Scheduler.async`;
-  - Added [reactive()](#function-reactive) and [computed()](#function-computed);
-  - Renamed `addTeardown()` to [teardown()](#class-branch-teardown);
+  - Added [`reactive()`](#function-reactive) and
+    [`computed()`](#function-computed);
+  - Renamed `addTeardown()` to [`teardown()`](#class-branch-teardown);
   - Removed `setInterval()` and `setTimeout()` for branches.
 - v2.2.0:
-  - Added [write()](#class-twig-write) for twigs.
+  - Added [`write()`](#class-twig-write) for twigs.
 - v2.0.1 - v2.0.3:
   - Minor changes.
 - v2.0.0:
-  - Added class `Scheduler` and `Signal`;
-  - Added [selector](#class-leaf-selector) for leaves;
-  - Renamed `remove()` to [dispose()](#class-branch-dispose);
-  - Changed signature of [createBranch](#function-createbranch).
+  - Added class [`Scheduler`](#class-scheduler) and [`Signal`](#class-signal);
+  - Added [`selector`](#class-leaf-selector) for leaves;
+  - Renamed `remove()` to [`dispose()`](#class-branch-dispose);
+  - Changed signature of [`createBranch()`](#function-createbranch).
 
 ## License
 
