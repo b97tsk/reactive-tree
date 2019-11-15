@@ -383,7 +383,7 @@ If set, you need to call `run()` or `schedule()` to take effect.
 
 Get or set the `scheduler`.
 
-If `scheduler` is not set, `Scheduler.default` is used.
+If not set, [`Scheduler.default`](#class-scheduler-default) is used.
 
 #### class Branch: stopped
 
@@ -456,41 +456,55 @@ Add something to do when the branch disposes.
 ### class Scheduler
 
 ```typescript
-type ScheduleFunc = (cb: () => void) => void;
+function createAsyncScheduler(schedule?: (cb: () => void) => void): Scheduler;
 
-function createScheduler(schedule?: ScheduleFunc): Scheduler;
+interface Scheduler {
+  schedule(branch: Branch): void;
+  unschedule(branch: Branch): void;
+}
 
 class Scheduler {
-  static create = createScheduler;
+  static createAsync = createAsyncScheduler;
   static async: Scheduler;
   static sync: Scheduler;
   static default = Scheduler.async;
-  flush(): void;
-  schedule(cb: () => void): void;
-  scheduleBranch(branch: Branch): void;
-  unscheduleBranch(branch: Branch): void;
 }
 ```
 
-#### function createScheduler()
+#### function createAsyncScheduler()
 
-Create a scheduler with a schedule function.
+Create an async scheduler with a schedule function.
 
-#### class Scheduler: flush()
+An async scheduler opens a window when scheduling a branch. During the lifetime
+of the window, multiple branches will then be put together. When the window
+closes, all these branches will then [`run()`](#class-branch-run) one by one in
+the order that oldest runs first and then the scheduler is ready to open another
+window.
 
-Run all branches scheduled by this scheduler.
+The schedule function defines how a window opens and when it closes. If not
+provided, a default one will be used.
 
-#### class Scheduler: schedule()
+#### interface Scheduler: schedule()
 
-The schedule function.
+Make a schedule to [`run()`](#class-branch-run) a branch.
 
-#### class Scheduler: scheduleBranch()
+#### interface Scheduler: unschedule()
 
-Make a schedule to run a branch.
+Undo what `schedule()` does to a branch.
 
-#### class Scheduler: unscheduleBranch()
+#### class Scheduler: async
 
-Undo what `scheduleBranch()` does to a branch.
+An async scheduler. See
+[`createAsyncScheduler()`](#function-createasyncscheduler).
+
+#### class Scheduler: sync
+
+A scheduler. When scheduling a branch, `sync` immediately
+[`run()`](#class-branch-run)s it.
+
+#### class Scheduler: default
+
+The default scheduler, which is [`async`](#class-scheduler-async).
 
 ---
 
@@ -590,6 +604,13 @@ value returned by `expression` and the branch mentioned above as parameters.
   - Renamed `subscribe()` to [`observe()`](#class-leaf-observe) for leaves;
   - Renamed `unsubscribe()` to [`unobserve()`](#class-leaf-unobserve) for
     leaves;
+  - Renamed `createScheduler()` to
+    [`createAsyncScheduler()`](#function-createasyncscheduler);
+  - Renamed `scheduleBranch()` to [`schedule()`](#interface-scheduler-schedule)
+    for schedulers;
+  - Renamed `unscheduleBranch()` to
+    [`unschedule()`](#interface-scheduler-unschedule) for schedulers;
+  - Changed [`Scheduler`](#class-scheduler) to be an interface and a class;
   - Changed the type of [`selector`](#class-leaf-selector) for leaves;
   - Changed `subject()` to [`subject`](#class-leaf-subject) for leaves;
   - Changed the implementation of [`createSignal()`](#function-createsignal).
@@ -602,7 +623,8 @@ value returned by `expression` and the branch mentioned above as parameters.
   - Added [`stopped`](#class-branch-stopped) for branches;
   - Added [`disposed`](#class-branch-disposed) for branches;
   - Added [`collectSignals()`](#function-collectsignals);
-  - Added `Scheduler.sync` and `Scheduler.async`;
+  - Added [`Scheduler.async`](#class-scheduler-async) and
+    [Scheduler.sync](#class-scheduler-sync);
   - Added [`reactive()`](#function-reactive) and
     [`computed()`](#function-computed);
   - Renamed `addTeardown()` to [`teardown()`](#class-branch-teardown);

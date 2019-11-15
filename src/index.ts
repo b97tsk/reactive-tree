@@ -439,18 +439,25 @@ export class Branch {
     }
 }
 
-export type ScheduleFunc = (cb: () => void) => void
-
-export function createScheduler(schedule?: ScheduleFunc): Scheduler {
-    return new Scheduler(schedule)
+export interface Scheduler {
+    schedule(branch: Branch): void
+    unschedule(branch: Branch): void
 }
 
-export class Scheduler {
-    static create = createScheduler
-    static async = new Scheduler()
-    static sync = new Scheduler(cb => cb())
-    static default = Scheduler.async
+export function createAsyncScheduler(
+    schedule?: (cb: () => void) => void
+): Scheduler {
+    return new AsyncScheduler(schedule)
+}
 
+const defaultScheduleFunc = (cb: () => void) => {
+    setTimeout(cb, 0)
+}
+
+class AsyncScheduler implements Scheduler {
+    static create = createAsyncScheduler
+
+    /** @internal */ _schedule: (cb: () => void) => void
     /** @internal */ _scheduled = false
     /** @internal */ _scheduledBranches = [] as Branch[]
     /** @internal */ _runningBranches?: Branch[]
@@ -458,8 +465,8 @@ export class Scheduler {
     /** @internal */ _flush?: () => void
 
     /** @internal */
-    constructor(schedule?: ScheduleFunc) {
-        schedule && (this.schedule = schedule)
+    constructor(schedule?: (cb: () => void) => void) {
+        this._schedule = schedule || defaultScheduleFunc
     }
 
     flush() {
@@ -478,10 +485,7 @@ export class Scheduler {
         }
         this._runningBranch = this._runningBranches = undefined
     }
-    schedule(cb: () => void) {
-        setTimeout(cb, 0)
-    }
-    scheduleBranch(branch: Branch) {
+    schedule(branch: Branch) {
         if (branch._scheduledBy === this) {
             return
         }
@@ -513,12 +517,12 @@ export class Scheduler {
         }
         this._scheduled = true
 
-        tryCatch(this.schedule).call(
+        tryCatch(this._schedule).call(
             this,
             this._flush || (this._flush = this.flush.bind(this))
         )
     }
-    unscheduleBranch(branch: Branch) {
+    unschedule(branch: Branch) {
         switch (branch._scheduledBy) {
             case undefined:
                 return
@@ -544,6 +548,22 @@ export class Scheduler {
             }
         }
     }
+}
+
+class SyncScheduler implements Scheduler {
+    schedule(branch: Branch) {
+        tryCatch(runBranch)(branch)
+    }
+    unschedule(branch: Branch) {
+        return
+    }
+}
+
+export class Scheduler {
+    static createAsync = createAsyncScheduler
+    static async: Scheduler = new AsyncScheduler()
+    static sync: Scheduler = new SyncScheduler()
+    static default = Scheduler.async
 }
 
 export function reactive(target: object, propertyKey: string | symbol): void {
@@ -766,11 +786,11 @@ function removeAllFinalizers(branch: Branch) {
 }
 
 function scheduleBranch(branch: Branch) {
-    return (branch.scheduler || Scheduler.default).scheduleBranch(branch)
+    return (branch.scheduler || Scheduler.default).schedule(branch)
 }
 
 function unscheduleBranch(branch: Branch) {
-    return (branch.scheduler || Scheduler.default).unscheduleBranch(branch)
+    return (branch.scheduler || Scheduler.default).unschedule(branch)
 }
 
 function addSignal(signals: SignalItem[], signal: Signal) {

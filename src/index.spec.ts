@@ -4,6 +4,7 @@ import { of, queueScheduler } from 'rxjs'
 import { filter, subscribeOn } from 'rxjs/operators'
 import {
     connectSignal,
+    createAsyncScheduler,
     createBranch,
     createLeaf,
     createSignal,
@@ -15,10 +16,11 @@ import {
     Scheduler,
 } from '.'
 
-const schedule = (callback: (...args: any[]) => void) =>
-    queueScheduler.schedule(callback)
+const schedule = (cb: () => void) => {
+    queueScheduler.schedule(cb)
+}
 
-Scheduler.default.schedule = schedule
+Scheduler.default = createAsyncScheduler(schedule)
 
 describe('Leaf', () => {
     it('createLeaf() with a value', () => {
@@ -183,7 +185,7 @@ describe('Branch', () => {
         const handler = () => {
             value = 42
         }
-        const scheduler = new Scheduler(schedule)
+        const scheduler = createAsyncScheduler(schedule)
         const branch = createBranch(scheduler, handler)
         expect(branch.handler).to.equal(handler)
         expect(value).to.equal(42)
