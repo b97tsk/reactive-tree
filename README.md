@@ -153,8 +153,8 @@ setTimeout(() => {
 }, 2000);
 
 // Output:
-//   (2 seconds later)
 //   No book is showing.
+//   (2 seconds later)
 //   We are showing a book.
 //   Name of the book is "How To Make Cookies".
 //   (2 seconds later)
