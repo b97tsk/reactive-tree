@@ -511,7 +511,7 @@ The default scheduler, which is [`async`](#class-scheduler-async).
 ### class Signal
 
 ```typescript
-function createSignal<T>(source: ObservableInput<T>): Signal;
+function createSignal(source: ObservableInput<any>): Signal;
 function connectSignal(signal: Signal): void;
 function collectSignals(cb: () => void): Signal[];
 

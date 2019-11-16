@@ -53,7 +53,7 @@ class SignalItem implements Signal {
     }
 }
 
-export function createSignal<T>(source: ObservableInput<T>): Signal {
+export function createSignal(source: ObservableInput<any>): Signal {
     const signalID = generateSignalID()
     let obs: Observable<Signal> | undefined
     return {
