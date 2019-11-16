@@ -515,6 +515,12 @@ function createSignal(source: ObservableInput<any>): Signal;
 function connectSignal(signal: Signal): void;
 function collectSignals(cb: () => void): Signal[];
 
+interface Signal {
+  readonly name?: string | symbol;
+  readonly identity: number;
+  readonly observable: Observable<Signal>;
+}
+
 class Signal {
   static create = createSignal;
   static connect = connectSignal;
@@ -535,6 +541,29 @@ or branches to react (twigs become dirty, branches schedule to run again).
 #### function collectSignals()
 
 Collect signals inside the callback function, return an array of them.
+
+#### interface Signal: name
+
+The name of the signal.
+
+For leaves that are created by [`defineLeaf()`](#function-defineleaf) or
+[`reactive()`](#function-reactive), their `name` would be the value passed to
+the function for the `propertyKey` parameter.
+
+For twigs that are created by [`defineTwig()`](#function-definetwig) or
+[`computed()`](#function-computed), their `name` would be the value passed to
+the function for the `propertyKey` parameter.
+
+#### interface Signal: identity
+
+The identity for the signal.
+
+This property is for uniqueness, for ordering, the value itself has no meaning.
+
+#### interface Signal: observable
+
+The observable provided by the signal. Each emission of this observable
+represents a signal.
 
 ---
 

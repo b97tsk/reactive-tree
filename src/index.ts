@@ -112,7 +112,7 @@ export function defineLeaf<T>(
 ): Leaf<T> {
     if (arguments.length < 3) {
         const leaf = new Leaf((target as any)[propertyKey])
-        leaf.name = propertyKey
+        leaf._name = propertyKey
         Object.defineProperty(target, propertyKey, {
             get: () => leaf.read(),
             set: value => leaf.write(value),
@@ -120,7 +120,7 @@ export function defineLeaf<T>(
         return leaf
     }
     const leaf = new Leaf(value as T)
-    leaf.name = propertyKey
+    leaf._name = propertyKey
     Object.defineProperty(target, propertyKey, {
         get: () => leaf.read(),
         set: value => leaf.write(value),
@@ -137,7 +137,10 @@ export class Leaf<T> implements Signal {
     static create = createLeaf
     static define = defineLeaf
 
-    name?: string | symbol
+    get name(): string | symbol {
+        return this._name || (this._name = 'Leaf@' + this.identity)
+    }
+
     readonly identity = generateSignalID()
 
     get observable(): Observable<Signal> {
@@ -153,6 +156,7 @@ export class Leaf<T> implements Signal {
 
     value: T
 
+    /** @internal */ _name?: string | symbol
     /** @internal */ _subject?: Subject<T>
     /** @internal */ _observable?: Observable<Signal>
     /** @internal */ _selector?: OperatorFunction<T, T>
@@ -231,7 +235,7 @@ export function defineTwig<T>(
     handler: () => T
 ): Twig<T> {
     const twig = new Twig(handler)
-    twig.name = propertyKey
+    twig._name = propertyKey
     Object.defineProperty(target, propertyKey, {
         get: () => twig.read(),
         set: value => twig.write(value),
@@ -245,7 +249,10 @@ export class Twig<T> implements Signal {
     static create = createTwig
     static define = defineTwig
 
-    name?: string | symbol
+    get name(): string | symbol {
+        return this._name || (this._name = 'Twig@' + this.identity)
+    }
+
     readonly identity = generateSignalID()
 
     get observable(): Observable<Signal> {
@@ -259,6 +266,7 @@ export class Twig<T> implements Signal {
     dirty = true
     handler: () => T
 
+    /** @internal */ _name?: string | symbol
     /** @internal */ _value?: T
     /** @internal */ _signals?: SignalItem[]
     /** @internal */ _running?: boolean
@@ -570,7 +578,7 @@ export function reactive(target: object, propertyKey: string | symbol): void {
     Object.defineProperty(target, propertyKey, {
         set(value: any) {
             const leaf = createLeaf(value)
-            leaf.name = propertyKey
+            leaf._name = propertyKey
             Object.defineProperty(this, propertyKey, {
                 get: () => leaf.read(),
                 set: value => leaf.write(value),
@@ -595,7 +603,7 @@ export function computed(
     descriptor.get = function(this: any) {
         const twig = createTwig(get.bind(this))
         set && (twig.write = set.bind(this))
-        twig.name = propertyKey
+        twig._name = propertyKey
         Object.defineProperty(this, propertyKey, {
             get: () => twig.read(),
             set: value => twig.write(value),
