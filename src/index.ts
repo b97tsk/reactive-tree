@@ -402,8 +402,7 @@ export class Branch {
             }
             this._parent = undefined
         }
-        this._disposed = true
-        return stopBranch(this)
+        return disposeBranch(this)
     }
     freeze() {
         this._frozen = true
@@ -760,7 +759,12 @@ function stopBranch(branch: Branch) {
     removeAllSignals(branch)
     removeAllBranches(branch)
     removeAllTeardowns(branch)
-    branch._disposed && removeAllFinalizers(branch)
+}
+
+function disposeBranch(branch: Branch) {
+    branch._disposed = true
+    stopBranch(branch)
+    removeAllFinalizers(branch)
 }
 
 function removeAllSignals(branch: Branch) {
@@ -771,8 +775,7 @@ function removeAllSignals(branch: Branch) {
 function removeAllBranches(branch: Branch) {
     const branches = branch._branches
     if (branches) {
-        branches.forEach(setDisposed)
-        branches.forEach(stopBranch)
+        branches.forEach(disposeBranch)
         branches.length = 0
     }
 }
@@ -827,10 +830,6 @@ function removeDiscardedSignals(signals: SignalItem[]) {
 
 function setDiscarded(x: { discarded?: boolean }) {
     x.discarded = true
-}
-
-function setDisposed(x: { _disposed?: boolean }) {
-    x._disposed = true
 }
 
 function unsubscribeObject(x: { _subscription?: Subscription }) {
