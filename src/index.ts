@@ -386,6 +386,11 @@ export class Branch {
         }
         return runBranch(this)
     }
+    start() {
+        if (this._stopped) {
+            return this.run()
+        }
+    }
     stop() {
         return stopBranch(this)
     }

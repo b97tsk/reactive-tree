@@ -28,7 +28,7 @@ const leaf = createLeaf("world");
 console.log(`Hello, ${leaf.value}.`); // Hello, world.
 ```
 
-A second way to create a leaf is using [`defineLeaf()`](#function-defineleaf).
+A second way to create a leaf is to use [`defineLeaf()`](#function-defineleaf).
 
 This example doesn't show how a leaf reacts whenever its value changes. Let's
 keep reading.
@@ -69,7 +69,7 @@ which causes the twig to become **dirty**, because the twig **reads** the leaf
 inside its `handler` function. As a result, the second `twig.value` now has a
 different value.
 
-A second way to create a twig is using [`defineTwig()`](#function-definetwig).
+A second way to create a twig is to use [`defineTwig()`](#function-definetwig).
 
 ---
 
@@ -220,7 +220,7 @@ By default, leaves react only when a different value writes to them. You can
 change this behavior by setting this property.
 
 Note that setting this property has no effect if the leaf has been read by twigs
-or branches. Setting this property just after the leaf is created is the
+or branches. Setting this property just after the leaf has been created is the
 recommended way.
 
 #### class Leaf: subject
@@ -351,6 +351,7 @@ class Branch {
   readonly stopped: boolean;
   readonly disposed: boolean;
   run(): void;
+  start(): void;
   stop(): void;
   dispose(): void;
   freeze(): void;
@@ -398,6 +399,10 @@ Check if the branch disposes.
 Force the branch to restart [its procedure](#branches) immediately.
 
 An error throws if `run()` is called inside the `handler` function.
+
+#### class Branch: start()
+
+`run()` the branch if it was stopped.
 
 #### class Branch: stop()
 
@@ -626,6 +631,8 @@ value returned by `expression` and the branch mentioned above as parameters.
 
 ## Changelog
 
+- v4.1.0:
+  - Added [`start()`](#class-branch-start) method for branches.
 - v4.0.0:
   - Added [`finalize()`](#class-branch-finalize) method for branches;
   - Added [`when()`](#function-when) and [`whenever()`](#function-whenever);
