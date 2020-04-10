@@ -31,17 +31,17 @@
   "author": "b97tsk <b97tsk@email.com>",
   "license": "MIT",
   "dependencies": {
-    "rxjs": "^6.5.3"
+    "rxjs": "^6.5.5"
   },
   "devDependencies": {
-    "@types/chai": "^4.2.4",
+    "@types/chai": "^4.2.11",
     "@types/mocha": "^5.2.7",
-    "@types/node": "^10.17.2",
+    "@types/node": "^10.17.19",
     "chai": "^4.2.0",
     "mocha": "^5.2.0",
-    "rollup": "^1.26.0",
+    "rollup": "^1.32.1",
     "rollup-plugin-typescript2": "^0.21.2",
     "ts-node": "^7.0.1",
-    "typescript": "^3.5.3"
+    "typescript": "^3.8.3"
   }
 }
